@@ -7,20 +7,20 @@ export default function OrderError({
   reset: () => void
 }) {
   return (
-    <div className="min-h-dvh bg-white flex items-center justify-center px-6">
+    <div className="min-h-dvh flex items-center justify-center px-6" style={{ background: '#F8F7F5', fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
       <div className="text-center max-w-xs">
-        <div className="mx-auto mb-5 w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-          <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <div className="mx-auto mb-6 w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+          <svg className="w-7 h-7 text-red-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1.5">Something went wrong</h1>
-        <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+        <h1 className="text-[22px] font-bold text-gray-900 tracking-tight mb-2">Something went wrong</h1>
+        <p className="text-[14px] text-gray-400 mb-8 leading-relaxed">
           We couldn&apos;t load this page. Please try again.
         </p>
         <button
           onClick={reset}
-          className="inline-flex h-10 items-center px-5 bg-gray-900 text-white text-sm font-medium rounded-full border-0 cursor-pointer hover:bg-gray-800 transition-colors"
+          className="inline-flex h-11 items-center px-6 bg-gray-900 text-white text-[13px] font-semibold rounded-full border-0 cursor-pointer transition-colors hover:bg-gray-800"
         >
           Try again
         </button>
