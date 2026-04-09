@@ -16,6 +16,8 @@ const GREEN_MID = '#2d5a3f'
 const GOLD = '#c9a84c'
 const CREAM = '#faf7f2'
 const SAND = '#f0ebe0'
+const SERIF = "'Georgia', 'Times New Roman', serif"
+const SANS = "Arial, Helvetica, sans-serif"
 
 type Props = {
   venue: Venue
@@ -78,7 +80,6 @@ export function OrderPageClient({
       const next = { ...prev }
       if ((next[item.id] || 0) > 1) next[item.id]--
       else delete next[item.id]
-      // Clean up modifiers when item fully removed
       if (!next[item.id]) {
         setSelectedMods((p) => {
           const n = { ...p }
@@ -164,21 +165,21 @@ export function OrderPageClient({
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
-        style={{ background: CREAM, fontFamily: "'Georgia', serif" }}
+        style={{ background: CREAM, fontFamily: SERIF, maxWidth: 430, margin: '0 auto', boxShadow: '0 1px 40px rgba(0,0,0,0.06)' }}
       >
-        <div className="text-6xl mb-5">⛳</div>
+        <div className="text-7xl mb-6">⛳</div>
         <h2
           className="text-2xl font-bold mb-3"
-          style={{ color: GREEN }}
+          style={{ color: GREEN, letterSpacing: '0.01em' }}
         >
           Order Received
         </h2>
-        <p className="text-base mb-2" style={{ fontFamily: 'Arial, sans-serif', color: '#1c1c1c', lineHeight: 1.5 }}>
+        <p className="text-base mb-4" style={{ fontFamily: SANS, color: '#1c1c1c', lineHeight: 1.5 }}>
           {fulfillment === 'delivery' && deliveryLocation
             ? `We'll bring your order to ${deliveryLocation}.`
             : 'Your order will be ready for pickup.'}
         </p>
-        <p className="text-sm" style={{ fontFamily: 'Arial, sans-serif', color: '#6b7280' }}>
+        <p className="text-sm" style={{ fontFamily: SANS, color: '#6b7280' }}>
           {venue.customer_id_label && customerId && `${venue.customer_id_label} ${customerId} · `}
           {cartDisplay}
         </p>
@@ -206,21 +207,23 @@ export function OrderPageClient({
     return (
       <div
         className="min-h-screen pb-24"
-        style={{ background: CREAM, fontFamily: "'Georgia', serif", maxWidth: 430, margin: '0 auto' }}
+        style={{ background: CREAM, fontFamily: SERIF, maxWidth: 430, margin: '0 auto', boxShadow: '0 1px 40px rgba(0,0,0,0.06)' }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4"
+          className="sticky top-0 z-30 flex items-center justify-between px-5 py-4"
           style={{ background: GREEN, borderBottom: `3px solid ${GOLD}` }}
         >
           <button
             onClick={() => setView('menu')}
-            className="text-sm border-0 bg-transparent cursor-pointer"
-            style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'Arial, sans-serif' }}
+            className="text-sm border-0 bg-transparent cursor-pointer py-2 px-1"
+            style={{ color: 'rgba(255,255,255,0.8)', fontFamily: SANS }}
           >
             ← Back
           </button>
-          <span className="text-base font-bold text-white">Review Order</span>
+          <span className="text-lg font-bold text-white" style={{ fontFamily: SERIF }}>
+            Review Order
+          </span>
           <span className="w-10" />
         </div>
 
@@ -228,12 +231,12 @@ export function OrderPageClient({
           {/* Line items card */}
           <div
             className="rounded-xl p-4"
-            style={{ background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
+            style={{ background: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.04)', border: `1px solid ${SAND}` }}
           >
             {lineItems.map(({ item, qty, mods, lineTotal }) => (
-              <div key={item.id} className="flex justify-between items-start mb-3">
+              <div key={item.id} className="flex justify-between items-start mb-3.5">
                 <div className="flex gap-2.5 items-start">
-                  <span className="text-sm mt-px min-w-[22px]" style={{ color: '#6b7280', fontFamily: 'Arial, sans-serif' }}>
+                  <span className="text-sm mt-px min-w-[22px]" style={{ color: '#6b7280', fontFamily: SANS }}>
                     {qty}×
                   </span>
                   <div>
@@ -243,8 +246,8 @@ export function OrderPageClient({
                     {mods.map((m) => (
                       <div
                         key={m.id}
-                        className="text-[13px] mt-0.5"
-                        style={{ color: '#6b7280', fontFamily: 'Arial, sans-serif' }}
+                        className="text-[13px] mt-0.5 pl-1"
+                        style={{ color: '#6b7280', fontFamily: SANS }}
                       >
                         {m.modifier_type === 'remove' ? '− ' : '+ '}{m.name}
                       </div>
@@ -253,27 +256,27 @@ export function OrderPageClient({
                 </div>
                 <div
                   className="text-[15px] font-bold"
-                  style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                  style={{ color: '#1c1c1c', fontFamily: SANS }}
                 >
                   ${lineTotal.toFixed(2)}
                 </div>
               </div>
             ))}
 
-            <div className="my-3" style={{ height: 1, background: SAND }} />
+            <div className="my-4" style={{ height: 1, background: SAND }} />
 
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-base font-bold" style={{ color: '#1c1c1c' }}>Total</span>
+              <span className="text-[17px] font-bold" style={{ color: '#1c1c1c' }}>Total</span>
               <span
                 className="text-xl font-bold"
-                style={{ color: GREEN, fontFamily: 'Arial, sans-serif' }}
+                style={{ color: GREEN, fontFamily: SANS }}
               >
                 ${cartTotal.toFixed(2)}
               </span>
             </div>
             <p
-              className="text-xs text-center m-0"
-              style={{ color: '#6b7280', fontFamily: 'Arial, sans-serif' }}
+              className="text-xs text-center mt-2 mb-0"
+              style={{ color: '#6b7280', fontFamily: SANS }}
             >
               Billed to your member account
             </p>
@@ -282,24 +285,25 @@ export function OrderPageClient({
           {/* Details card */}
           <div
             className="rounded-xl p-4"
-            style={{ background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
+            style={{ background: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.04)', border: `1px solid ${SAND}` }}
           >
             {/* Customer ID */}
             {venue.customer_id_label && (
               <>
                 <label
                   className="block text-[13px] font-semibold mb-1.5"
-                  style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                  style={{ color: '#1c1c1c', fontFamily: SANS, letterSpacing: '0.02em' }}
                 >
                   {venue.customer_id_label} {venue.customer_id_required && '*'}
                 </label>
                 <input
-                  className="w-full rounded-lg px-3 py-2.5 text-[15px] mb-3 outline-none"
+                  className="order-input w-full rounded-lg px-3 py-2.5 text-[15px] mb-3"
                   style={{
                     border: '1px solid rgba(0,0,0,0.15)',
                     background: CREAM,
-                    fontFamily: 'Arial, sans-serif',
+                    fontFamily: SANS,
                     color: '#1c1c1c',
+                    outline: 'none',
                   }}
                   placeholder={`e.g. 1042`}
                   value={customerId}
@@ -313,7 +317,7 @@ export function OrderPageClient({
               <>
                 <label
                   className="block text-[13px] font-semibold mb-1.5 mt-3"
-                  style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                  style={{ color: '#1c1c1c', fontFamily: SANS, letterSpacing: '0.02em' }}
                 >
                   Fulfillment
                 </label>
@@ -325,7 +329,8 @@ export function OrderPageClient({
                         border: fulfillment === 'pickup' ? `1px solid ${GREEN}` : '1px solid rgba(0,0,0,0.15)',
                         background: fulfillment === 'pickup' ? GREEN : CREAM,
                         color: fulfillment === 'pickup' ? '#fff' : '#6b7280',
-                        fontFamily: 'Arial, sans-serif',
+                        fontFamily: SANS,
+                        transition: 'all 0.15s ease',
                       }}
                       onClick={() => setFulfillment('pickup')}
                     >
@@ -339,7 +344,8 @@ export function OrderPageClient({
                         border: fulfillment === 'delivery' ? `1px solid ${GREEN}` : '1px solid rgba(0,0,0,0.15)',
                         background: fulfillment === 'delivery' ? GREEN : CREAM,
                         color: fulfillment === 'delivery' ? '#fff' : '#6b7280',
-                        fontFamily: 'Arial, sans-serif',
+                        fontFamily: SANS,
+                        transition: 'all 0.15s ease',
                       }}
                       onClick={() => setFulfillment('delivery')}
                     >
@@ -355,17 +361,18 @@ export function OrderPageClient({
               <>
                 <label
                   className="block text-[13px] font-semibold mb-1.5 mt-3"
-                  style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                  style={{ color: '#1c1c1c', fontFamily: SANS, letterSpacing: '0.02em' }}
                 >
                   Delivery Location
                 </label>
                 <input
-                  className="w-full rounded-lg px-3 py-2.5 text-[15px] outline-none"
+                  className="order-input w-full rounded-lg px-3 py-2.5 text-[15px]"
                   style={{
                     border: '1px solid rgba(0,0,0,0.15)',
                     background: CREAM,
-                    fontFamily: 'Arial, sans-serif',
+                    fontFamily: SANS,
                     color: '#1c1c1c',
+                    outline: 'none',
                   }}
                   placeholder={venue.delivery_location_placeholder || 'e.g. Hole 7'}
                   value={deliveryLocation}
@@ -379,19 +386,20 @@ export function OrderPageClient({
               <>
                 <label
                   className="block text-[13px] font-semibold mb-1.5 mt-3"
-                  style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                  style={{ color: '#1c1c1c', fontFamily: SANS, letterSpacing: '0.02em' }}
                 >
                   Notes (optional)
                 </label>
                 <textarea
-                  className="w-full rounded-lg px-3 py-2.5 text-[15px] outline-none"
+                  className="order-input w-full rounded-lg px-3 py-2.5 text-[15px]"
                   style={{
                     border: '1px solid rgba(0,0,0,0.15)',
                     background: CREAM,
-                    fontFamily: 'Arial, sans-serif',
+                    fontFamily: SANS,
                     color: '#1c1c1c',
                     height: 72,
                     resize: 'none',
+                    outline: 'none',
                   }}
                   placeholder="Any special requests..."
                   value={notes}
@@ -405,7 +413,7 @@ export function OrderPageClient({
           {error && (
             <div
               ref={(el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="rounded-xl p-3 text-sm"
+              className="rounded-xl p-3.5 text-sm"
               style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c' }}
             >
               {error}
@@ -414,13 +422,13 @@ export function OrderPageClient({
 
           {/* Submit button */}
           <button
-            className="w-full rounded-xl py-4 text-base font-bold text-white cursor-pointer disabled:opacity-50"
+            className="order-submit w-full rounded-2xl py-4 text-base font-bold text-white cursor-pointer disabled:opacity-50"
             style={{
               background: GREEN,
-              borderBottom: `3px solid ${GOLD}`,
               border: 'none',
-              borderBlockEnd: `3px solid ${GOLD}`,
-              fontFamily: 'Arial, sans-serif',
+              borderBottom: `3px solid ${GOLD}`,
+              fontFamily: SANS,
+              letterSpacing: '0.02em',
             }}
             disabled={isPending || (venue.customer_id_required && !customerId.trim())}
             onClick={handleSubmit}
@@ -433,29 +441,27 @@ export function OrderPageClient({
   }
 
   // ── Menu view ─────────────────────────────────────────────
-  // Filter items by active category
   const filteredItems = activeCategory
     ? menuItems.filter((i) => i.category?.id === activeCategory)
     : menuItems.filter((i) => !i.category)
 
-  // Items without a category
   const uncategorized = menuItems.filter((i) => !i.category)
 
   return (
     <div
       className="min-h-screen pb-24 relative"
-      style={{ background: CREAM, fontFamily: "'Georgia', serif", maxWidth: 430, margin: '0 auto' }}
+      style={{ background: CREAM, fontFamily: SERIF, maxWidth: 430, margin: '0 auto', boxShadow: '0 1px 40px rgba(0,0,0,0.06)' }}
     >
       {/* Hero header */}
       <div
-        className="flex items-center gap-3.5 px-5 pt-6 pb-5"
+        className="sticky top-0 z-30 flex items-center gap-3.5 px-5 py-3.5"
         style={{
           background: `linear-gradient(135deg, ${GREEN} 0%, ${GREEN_MID} 100%)`,
           borderBottom: `3px solid ${GOLD}`,
         }}
       >
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-[22px] shrink-0"
+          className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
           style={{ background: GOLD }}
         >
           ⛳
@@ -466,7 +472,7 @@ export function OrderPageClient({
           </h1>
           <p
             className="text-[13px] mt-0.5 m-0"
-            style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Arial, sans-serif' }}
+            style={{ color: 'rgba(255,255,255,0.7)', fontFamily: SANS }}
           >
             {cartDisplay}
             {venue.allow_delivery && ' · Delivery Available'}
@@ -477,16 +483,15 @@ export function OrderPageClient({
       {/* Category tabs */}
       {categories.length > 0 && (
         <div
-          className="flex gap-1 px-4 overflow-x-auto"
+          className="sticky top-[68px] z-20 flex gap-1 px-4 overflow-x-auto hide-scrollbar"
           style={{ background: GREEN }}
         >
-          {/* Show uncategorized tab if there are uncategorized items */}
           {uncategorized.length > 0 && (
             <button
-              className="whitespace-nowrap border-0 cursor-pointer py-3 px-4 text-sm font-semibold"
+              className="whitespace-nowrap border-0 cursor-pointer py-3.5 px-4 text-sm font-semibold"
               style={{
                 background: 'transparent',
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: SANS,
                 color: !activeCategory ? GOLD : 'rgba(255,255,255,0.6)',
                 borderBottom: !activeCategory ? `3px solid ${GOLD}` : '3px solid transparent',
                 transition: 'all 0.15s',
@@ -499,10 +504,10 @@ export function OrderPageClient({
           {categories.map((cat) => (
             <button
               key={cat.id}
-              className="whitespace-nowrap border-0 cursor-pointer py-3 px-4 text-sm font-semibold"
+              className="whitespace-nowrap border-0 cursor-pointer py-3.5 px-4 text-sm font-semibold"
               style={{
                 background: 'transparent',
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: SANS,
                 color: activeCategory === cat.id ? GOLD : 'rgba(255,255,255,0.6)',
                 borderBottom: activeCategory === cat.id ? `3px solid ${GOLD}` : '3px solid transparent',
                 transition: 'all 0.15s',
@@ -516,13 +521,12 @@ export function OrderPageClient({
       )}
 
       {/* Menu items */}
-      <div className="flex flex-col gap-2.5 p-4">
+      <div className="flex flex-col gap-3 p-4">
         {(activeCategory ? filteredItems : uncategorized).map((item) => {
           const qty = cart[item.id] || 0
           const hasMods = item.modifier_groups.some((g) => g.options.length > 0)
           const isExpanded = expandedItem === item.id
 
-          // Flatten all modifier options for this item
           const allMods = item.modifier_groups.flatMap((g) =>
             g.options.map((o) => ({ ...o, groupName: g.name }))
           )
@@ -533,21 +537,21 @@ export function OrderPageClient({
               className="rounded-xl"
               style={{
                 background: '#fff',
-                padding: '14px 16px',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                border: '1px solid rgba(0,0,0,0.06)',
+                padding: 16,
+                boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
+                border: `1px solid ${SAND}`,
               }}
             >
               {/* Item row */}
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
-                  <div className="text-base font-bold mb-0.5" style={{ color: '#1c1c1c' }}>
+                  <div className="text-[15px] font-bold mb-1" style={{ color: '#1c1c1c' }}>
                     {item.name}
                   </div>
                   {item.description && (
                     <div
-                      className="text-[13px] mb-1.5"
-                      style={{ color: '#6b7280', fontFamily: 'Arial, sans-serif', lineHeight: 1.4 }}
+                      className="text-[13px] mb-1.5 line-clamp-2"
+                      style={{ color: '#6b7280', fontFamily: SANS, lineHeight: 1.4 }}
                     >
                       {item.description}
                     </div>
@@ -555,7 +559,7 @@ export function OrderPageClient({
                   {item.price !== null && (
                     <div
                       className="text-[15px] font-bold"
-                      style={{ color: GREEN_MID, fontFamily: 'Arial, sans-serif' }}
+                      style={{ color: GREEN_MID, fontFamily: SANS }}
                     >
                       ${item.price.toFixed(2)}
                     </div>
@@ -565,8 +569,8 @@ export function OrderPageClient({
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {qty === 0 ? (
                     <button
-                      className="border-0 rounded-lg py-2 px-[18px] text-sm font-semibold text-white cursor-pointer min-w-[64px]"
-                      style={{ background: GREEN, fontFamily: 'Arial, sans-serif' }}
+                      className="border-0 rounded-lg py-2.5 px-5 text-sm font-semibold text-white cursor-pointer min-w-[70px]"
+                      style={{ background: GREEN, fontFamily: SANS, letterSpacing: '0.02em' }}
                       onClick={() => {
                         addItem(item)
                         if (hasMods) setExpandedItem(item.id)
@@ -580,7 +584,7 @@ export function OrderPageClient({
                       style={{ background: SAND }}
                     >
                       <button
-                        className="bg-transparent border-0 text-lg font-bold cursor-pointer p-0 px-0.5 leading-none"
+                        className="bg-transparent border-0 text-lg font-bold cursor-pointer p-1 leading-none"
                         style={{ color: GREEN }}
                         onClick={() => removeItem(item)}
                       >
@@ -588,12 +592,12 @@ export function OrderPageClient({
                       </button>
                       <span
                         className="text-[15px] font-bold text-center min-w-[16px]"
-                        style={{ color: '#1c1c1c', fontFamily: 'Arial, sans-serif' }}
+                        style={{ color: '#1c1c1c', fontFamily: SANS }}
                       >
                         {qty}
                       </span>
                       <button
-                        className="bg-transparent border-0 text-lg font-bold cursor-pointer p-0 px-0.5 leading-none"
+                        className="bg-transparent border-0 text-lg font-bold cursor-pointer p-1 leading-none"
                         style={{ color: GREEN }}
                         onClick={() => addItem(item)}
                       >
@@ -603,11 +607,11 @@ export function OrderPageClient({
                   )}
                   {hasMods && qty > 0 && (
                     <button
-                      className="bg-transparent rounded-md py-1 px-2.5 text-xs cursor-pointer"
+                      className="bg-transparent rounded-full py-1 px-3 text-xs cursor-pointer"
                       style={{
                         border: `1px solid ${GREEN}`,
                         color: GREEN,
-                        fontFamily: 'Arial, sans-serif',
+                        fontFamily: SANS,
                       }}
                       onClick={() => setExpandedItem(isExpanded ? null : item.id)}
                     >
@@ -628,12 +632,13 @@ export function OrderPageClient({
                     return (
                       <button
                         key={mod.id}
-                        className="rounded-full py-1.5 px-3.5 text-[13px] cursor-pointer"
+                        className="rounded-full py-2 px-4 text-[13px] cursor-pointer"
                         style={{
                           background: checked ? GREEN : SAND,
                           color: checked ? '#fff' : '#1c1c1c',
                           border: checked ? `1px solid ${GREEN}` : '1px solid rgba(0,0,0,0.1)',
-                          fontFamily: 'Arial, sans-serif',
+                          fontFamily: SANS,
+                          transition: 'all 0.15s ease',
                         }}
                         onClick={() => toggleMod(item.id, mod.id)}
                       >
@@ -646,7 +651,7 @@ export function OrderPageClient({
                           </span>
                         )}
                         {mod.price_adjustment === 0 && mod.modifier_type !== 'remove' && (
-                          <span style={{ color: checked ? 'rgba(255,255,255,0.7)' : '#6b7280', marginLeft: 4 }}>
+                          <span style={{ color: checked ? 'rgba(255,255,255,0.8)' : '#6b7280', marginLeft: 4 }}>
                             Free
                           </span>
                         )}
@@ -660,7 +665,7 @@ export function OrderPageClient({
         })}
 
         {(activeCategory ? filteredItems : uncategorized).length === 0 && (
-          <div className="text-center py-12" style={{ color: '#6b7280', fontFamily: 'Arial, sans-serif' }}>
+          <div className="text-center py-16" style={{ color: '#6b7280', fontFamily: SERIF, fontStyle: 'italic' }}>
             No items in this category.
           </div>
         )}
@@ -669,25 +674,25 @@ export function OrderPageClient({
       {/* Cart bar */}
       {cartCount > 0 && (
         <div
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full px-4 pb-6 pt-3"
-          style={{ maxWidth: 430, background: CREAM, borderTop: '1px solid rgba(0,0,0,0.08)', boxSizing: 'border-box' }}
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full px-4 pb-8 pt-3 z-40"
+          style={{ maxWidth: 430, background: CREAM, boxShadow: '0 -4px 12px rgba(0,0,0,0.06)', boxSizing: 'border-box' }}
         >
           <div
-            className="rounded-xl py-3.5 px-5 flex justify-between items-center"
+            className="rounded-2xl py-3.5 px-5 flex justify-between items-center"
             style={{ background: GREEN }}
           >
             <span
               className="text-sm"
-              style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Arial, sans-serif' }}
+              style={{ color: 'rgba(255,255,255,0.7)', fontFamily: SANS }}
             >
               {cartCount} item{cartCount > 1 ? 's' : ''}
             </span>
             <button
-              className="border-0 rounded-lg py-2 px-[18px] text-sm font-bold cursor-pointer"
+              className="border-0 rounded-lg py-2.5 px-5 text-sm font-bold cursor-pointer"
               style={{
                 background: GOLD,
                 color: GREEN,
-                fontFamily: 'Arial, sans-serif',
+                fontFamily: SANS,
               }}
               onClick={() => setView('review')}
             >

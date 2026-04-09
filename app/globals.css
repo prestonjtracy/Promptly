@@ -30,3 +30,25 @@ body {
   --venue-primary: #000000;
   --venue-accent: #3b82f6;
 }
+
+/* Order page utilities */
+.order-input:focus {
+  border-color: #c9a84c !important;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+  outline: none;
+}
+
+.order-submit {
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+.order-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
