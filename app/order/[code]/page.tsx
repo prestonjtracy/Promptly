@@ -28,13 +28,18 @@ export default async function OrderPage(props: PageProps<'/order/[code]'>) {
   const { code } = await props.params
   const supabase = await createClient()
 
-  const { data: location } = await supabase
+  const { data: location, error: locationError } = await supabase
     .from('locations')
     .select('*, venue:venues(*)')
     .eq('code', code)
     .single()
 
+  if (locationError) {
+    console.error('[OrderPage] Location lookup failed:', { code, error: locationError.message, details: locationError })
+  }
+
   if (!location?.venue) {
+    console.error('[OrderPage] No location/venue found for code:', code, '| location:', location)
     notFound()
   }
 
