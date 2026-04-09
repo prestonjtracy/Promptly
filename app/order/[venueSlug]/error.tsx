@@ -7,24 +7,22 @@ export default function OrderError({
   reset: () => void
 }) {
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: '#faf7f2', fontFamily: "'Georgia', 'Times New Roman', serif", maxWidth: 430, margin: '0 auto', boxShadow: '0 1px 40px rgba(0,0,0,0.06)' }}
-    >
-      <div className="text-center max-w-sm">
-        <div className="text-6xl mb-4">⚠️</div>
-        <h1 className="text-2xl font-bold mb-2" style={{ color: '#1a3d2b' }}>
-          Something Went Wrong
-        </h1>
-        <p className="mb-6" style={{ color: '#6b7280', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+    <div className="min-h-dvh bg-white flex items-center justify-center px-6">
+      <div className="text-center max-w-xs">
+        <div className="mx-auto mb-5 w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+          <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1.5">Something went wrong</h1>
+        <p className="text-sm text-gray-400 mb-6 leading-relaxed">
           We couldn&apos;t load this page. Please try again.
         </p>
         <button
           onClick={reset}
-          className="px-6 py-3 text-white rounded-lg font-medium cursor-pointer"
-          style={{ background: '#1a3d2b', border: 'none', borderBottom: '2px solid #c9a84c' }}
+          className="inline-flex h-10 items-center px-5 bg-gray-900 text-white text-sm font-medium rounded-full border-0 cursor-pointer hover:bg-gray-800 transition-colors"
         >
-          Try Again
+          Try again
         </button>
       </div>
     </div>
