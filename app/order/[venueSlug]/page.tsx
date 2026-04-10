@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Venue, Location, MenuItemWithModifiers } from '@/lib/supabase/types'
-import { OrderPageClient } from './_components/order-page-client'
+import { OrderForm } from './_components/order-form'
 
 export async function generateMetadata(props: {
   params: Promise<{ venueSlug: string }>
@@ -32,7 +32,6 @@ export default async function OrderPage(props: {
 
   const supabase = await createClient()
 
-  // Look up venue by slug
   const { data: venue, error: venueError } = await supabase
     .from('venues')
     .select('*')
@@ -46,10 +45,8 @@ export default async function OrderPage(props: {
 
   const typedVenue = venue as unknown as Venue
 
-  // Try to find a matching location for the cart param
   let location: Location | null = null
   if (cartParam) {
-    // Try exact code match first
     const { data: locByCode } = await supabase
       .from('locations')
       .select('*')
@@ -60,7 +57,6 @@ export default async function OrderPage(props: {
     if (locByCode) {
       location = locByCode as unknown as Location
     } else {
-      // Try matching name like "Cart 4" where cartParam = "4"
       const { data: locByName } = await supabase
         .from('locations')
         .select('*')
@@ -75,7 +71,6 @@ export default async function OrderPage(props: {
     }
   }
 
-  // If no location found, grab the first active one for the venue
   if (!location) {
     const { data: firstLoc } = await supabase
       .from('locations')
@@ -95,7 +90,6 @@ export default async function OrderPage(props: {
     notFound()
   }
 
-  // Fetch menu items with categories and modifiers
   const { data: menuItems } = await supabase
     .from('menu_items')
     .select('*, category:menu_categories(*), modifier_groups(*, options:modifier_options(*))')
@@ -115,20 +109,11 @@ export default async function OrderPage(props: {
     })
   )
 
-  // Fetch all categories for tabs
-  const { data: categories } = await supabase
-    .from('menu_categories')
-    .select('*')
-    .eq('venue_id', typedVenue.id)
-    .order('sort_order')
-
   return (
-    <OrderPageClient
+    <OrderForm
       venue={typedVenue}
       location={location}
       menuItems={typedMenuItems}
-      categories={(categories ?? []) as unknown as import('@/lib/supabase/types').MenuCategory[]}
-      cartDisplay={cartParam ?? location.name}
     />
   )
 }
