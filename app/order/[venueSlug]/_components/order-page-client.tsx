@@ -340,7 +340,7 @@ export function OrderPageClient({
             {uncategorized.length > 0 && (
               <button
                 onClick={() => setActiveCategory('')}
-                className="shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold transition-all"
+                className="hover-darken shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold transition-all"
                 style={
                   !activeCategory
                     ? { background: accent, color: '#fff' }
@@ -354,7 +354,7 @@ export function OrderPageClient({
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className="shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold transition-all"
+                className="hover-darken shrink-0 h-9 px-4 rounded-full text-[13px] font-semibold transition-all"
                 style={
                   activeCategory === cat.id
                     ? { background: accent, color: '#fff' }
@@ -385,7 +385,7 @@ export function OrderPageClient({
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl shadow-sm shadow-black/[0.04] overflow-hidden"
+                  className="bg-white rounded-2xl shadow-sm shadow-black/[0.04] overflow-hidden card-hover"
                 >
                   <div className="p-5 flex items-start gap-4">
                     {/* Info */}
@@ -404,7 +404,7 @@ export function OrderPageClient({
                       {qty === 0 ? (
                         <button
                           onClick={() => { addItem(item); if (hasMods) setExpandedItem(item.id) }}
-                          className="h-10 px-6 rounded-full text-[13px] font-semibold text-white transition-all active:scale-95"
+                          className="hover-darken h-10 px-6 rounded-full text-[13px] font-semibold text-white transition-all active:scale-95"
                           style={{ background: accent }}
                         >
                           Add
@@ -413,7 +413,7 @@ export function OrderPageClient({
                         <div className="flex items-center h-10 rounded-full overflow-hidden" style={{ background: `${accent}0a` }}>
                           <button
                             onClick={() => removeItem(item)}
-                            className="w-10 h-10 flex items-center justify-center text-[18px] font-medium transition-colors hover:bg-black/[0.03]"
+                            className="hover-darken w-10 h-10 flex items-center justify-center text-[18px] font-medium transition-colors hover:bg-black/[0.03]"
                             style={{ color: accent }}
                           >
                             −
@@ -421,7 +421,7 @@ export function OrderPageClient({
                           <span className="w-7 text-center text-[14px] font-bold text-gray-900 tabular-nums">{qty}</span>
                           <button
                             onClick={() => addItem(item)}
-                            className="w-10 h-10 flex items-center justify-center text-[18px] font-medium transition-colors hover:bg-black/[0.03]"
+                            className="hover-darken w-10 h-10 flex items-center justify-center text-[18px] font-medium transition-colors hover:bg-black/[0.03]"
                             style={{ color: accent }}
                           >
                             +
@@ -431,7 +431,7 @@ export function OrderPageClient({
                       {hasMods && qty > 0 && (
                         <button
                           onClick={() => setExpandedItem(isExpanded ? null : item.id)}
-                          className="text-[12px] font-semibold transition-colors"
+                          className="hover-darken text-[12px] font-semibold transition-colors"
                           style={{ color: accent }}
                         >
                           {isExpanded ? 'Done' : 'Customize'}
@@ -449,7 +449,7 @@ export function OrderPageClient({
                           <button
                             key={mod.id}
                             onClick={() => toggleMod(item.id, mod.id)}
-                            className="inline-flex items-center gap-1.5 h-9 rounded-full px-4 text-[12px] font-semibold transition-all"
+                            className="hover-darken inline-flex items-center gap-1.5 h-9 rounded-full px-4 text-[12px] font-semibold transition-all"
                             style={
                               checked
                                 ? { background: accent, color: '#fff' }
@@ -484,8 +484,8 @@ export function OrderPageClient({
           <div className="max-w-lg mx-auto px-5 pb-8 pt-4 pointer-events-auto" style={{ background: `linear-gradient(to top, ${BG} 60%, transparent)` }}>
             <button
               onClick={() => setView('review')}
-              className="w-full h-[56px] rounded-full text-white font-semibold flex items-center justify-between px-6 shadow-lg shadow-black/10 active:scale-[0.98] transition-transform"
-              style={{ background: accent }}
+              className="hover-darken w-full h-[56px] rounded-full text-white font-semibold flex items-center justify-between px-6 shadow-lg shadow-black/10 active:scale-[0.98] transition-transform"
+              style={{ background: '#2563EB' }}
             >
               <span className="text-[14px] opacity-70">{cartCount} item{cartCount > 1 ? 's' : ''}</span>
               <span className="text-[14px] font-bold">Review · ${cartTotal.toFixed(2)}</span>
