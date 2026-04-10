@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Venue } from '@/lib/supabase/types'
-import { updateVenueSettings } from '@/app/actions/admin'
+import { updateWorkspaceSettings } from '@/app/actions/admin'
 
-type VenueSettingsProps = {
+type WorkspaceSettingsProps = {
   venue: Venue
 }
 
@@ -47,20 +47,18 @@ function Toggle({
   )
 }
 
-export function VenueSettings({ venue }: VenueSettingsProps) {
+export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fulfillment
   const [allowPickup, setAllowPickup] = useState(venue.allow_pickup)
   const [allowDelivery, setAllowDelivery] = useState(venue.allow_delivery)
   const [deliveryPlaceholder, setDeliveryPlaceholder] = useState(
     venue.delivery_location_placeholder ?? ''
   )
 
-  // Customer ID
   const [customerIdLabel, setCustomerIdLabel] = useState(
     venue.customer_id_label ?? ''
   )
@@ -68,7 +66,6 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
     venue.customer_id_required
   )
 
-  // Notes
   const [allowNotes, setAllowNotes] = useState(venue.allow_notes)
 
   const handleSave = () => {
@@ -81,7 +78,7 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
     }
 
     startTransition(async () => {
-      const result = await updateVenueSettings(venue.id, {
+      const result = await updateWorkspaceSettings(venue.id, {
         allow_pickup: allowPickup,
         allow_delivery: allowDelivery,
         customer_id_label: customerIdLabel.trim() || null,
@@ -104,13 +101,13 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Fulfillment Options */}
+      {/* Delivery & Pickup */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-        <h2 className="font-semibold text-gray-900">Fulfillment</h2>
+        <h2 className="font-semibold text-gray-900">Delivery & Pickup</h2>
         <div className="space-y-3">
           <Toggle
             label="Pickup"
-            description="Customers can pick up their order"
+            description="Customers can pick up their request"
             checked={allowPickup}
             onChange={setAllowPickup}
           />
@@ -141,11 +138,11 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
         </div>
       </div>
 
-      {/* Customer ID */}
+      {/* Customer Identifier */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-        <h2 className="font-semibold text-gray-900">Customer ID Field</h2>
+        <h2 className="font-semibold text-gray-900">Customer Identifier</h2>
         <p className="text-sm text-gray-500">
-          Ask customers for an identifier like a member number or room number.
+          Ask customers for an identifier like a member number, room number, or seat number.
           Leave the label blank to hide this field.
         </p>
         <div className="space-y-3">
@@ -181,12 +178,12 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
         </div>
       </div>
 
-      {/* Notes */}
+      {/* Customer Notes */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-        <h2 className="font-semibold text-gray-900">Notes Field</h2>
+        <h2 className="font-semibold text-gray-900">Customer Notes</h2>
         <Toggle
           label="Allow notes"
-          description="Let customers add special requests or notes to their order"
+          description="Let customers add special requests or notes"
           checked={allowNotes}
           onChange={setAllowNotes}
         />
@@ -205,16 +202,16 @@ export function VenueSettings({ venue }: VenueSettingsProps) {
           disabled={isPending}
           className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          {isPending ? 'Saving...' : 'Save Settings'}
+          {isPending ? 'Saving...' : 'Save'}
         </button>
         {saved && (
           <span className="text-sm text-green-600 font-medium">Saved!</span>
         )}
       </div>
 
-      {/* Venue info (read-only) */}
+      {/* Business Info (read-only) */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-gray-900">Venue Info</h2>
+        <h2 className="font-semibold text-gray-900">Business Info</h2>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-gray-500">Name</span>

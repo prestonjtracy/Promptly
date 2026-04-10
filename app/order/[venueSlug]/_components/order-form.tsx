@@ -286,7 +286,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
         {menuItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
-              This venue hasn&apos;t set up their menu yet.
+              Nothing available right now.
             </p>
           </div>
         ) : (

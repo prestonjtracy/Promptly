@@ -41,12 +41,12 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
     .eq('venue_id', venueId)
     .order('sort_order')
 
-  const tab = (searchParams?.tab as string) ?? 'menu'
+  const tab = (searchParams?.tab as string) ?? 'requests'
 
   return (
     <AdminDashboard
       venue={venue as unknown as Venue}
-      menuItems={(menuItems ?? []) as unknown as MenuItemWithModifiers[]}
+      requests={(menuItems ?? []) as unknown as MenuItemWithModifiers[]}
       categories={(categories ?? []) as unknown as MenuCategory[]}
       activeTab={tab}
     />

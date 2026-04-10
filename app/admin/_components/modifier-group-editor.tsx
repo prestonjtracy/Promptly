@@ -155,7 +155,7 @@ export function ModifierGroupEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          Modifier Groups
+          Options & Customizations
         </h4>
         <button
           type="button"

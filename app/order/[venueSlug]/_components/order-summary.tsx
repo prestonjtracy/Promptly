@@ -54,7 +54,7 @@ export function OrderSummary({
 
   return (
     <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-      <h3 className="font-semibold text-gray-900">Order Summary</h3>
+      <h3 className="font-semibold text-gray-900">Summary</h3>
 
       <ul className="space-y-3">
         {entries.map((e) => {

@@ -47,9 +47,9 @@ export async function getAdminVenueId(): Promise<string | null> {
   return cookieStore.get(COOKIE_NAME)?.value ?? null
 }
 
-// ── Menu Items ───────────────────────────────────────────────
+// ── Requests ─────────────────────────────────────────────────
 
-export async function addMenuItem(data: {
+export async function createRequest(data: {
   venue_id: string
   name: string
   description: string | null
@@ -73,11 +73,11 @@ export async function addMenuItem(data: {
     sort_order: data.sort_order,
   })
 
-  if (error) return { error: 'Failed to add menu item.' }
+  if (error) return { error: 'Failed to create request.' }
   return { success: true }
 }
 
-export async function updateMenuItem(
+export async function updateRequest(
   itemId: string,
   venueId: string,
   data: {
@@ -105,11 +105,11 @@ export async function updateMenuItem(
     .eq('id', itemId)
     .eq('venue_id', venueId)
 
-  if (error) return { error: 'Failed to update menu item.' }
+  if (error) return { error: 'Failed to update request.' }
   return { success: true }
 }
 
-export async function deleteMenuItem(itemId: string, venueId: string) {
+export async function deleteRequest(itemId: string, venueId: string) {
   const adminVenueId = await getAdminVenueId()
   if (!adminVenueId || adminVenueId !== venueId) {
     return { error: 'Unauthorized.' }
@@ -123,11 +123,11 @@ export async function deleteMenuItem(itemId: string, venueId: string) {
     .eq('id', itemId)
     .eq('venue_id', venueId)
 
-  if (error) return { error: 'Failed to delete menu item.' }
+  if (error) return { error: 'Failed to delete request.' }
   return { success: true }
 }
 
-export async function reorderMenuItems(
+export async function reorderRequests(
   venueId: string,
   items: { id: string; sort_order: number }[]
 ) {
@@ -145,15 +145,15 @@ export async function reorderMenuItems(
       .eq('id', item.id)
       .eq('venue_id', venueId)
 
-    if (error) return { error: 'Failed to reorder items.' }
+    if (error) return { error: 'Failed to reorder requests.' }
   }
 
   return { success: true }
 }
 
-// ── Venue Settings ───────────────────────────────────────────
+// ── Workspace Settings ───────────────────────────────────────
 
-export async function updateVenueSettings(
+export async function updateWorkspaceSettings(
   venueId: string,
   settings: {
     allow_pickup: boolean
@@ -188,7 +188,7 @@ export async function updateVenueSettings(
     })
     .eq('id', venueId)
 
-  if (error) return { error: 'Failed to update settings.' }
+  if (error) return { error: 'Failed to save workspace settings.' }
   return { success: true }
 }
 
@@ -262,7 +262,7 @@ export async function addModifierGroup(
     .select('id')
     .single()
 
-  if (error || !data) return { error: 'Failed to add modifier group.' }
+  if (error || !data) return { error: 'Failed to add option group.' }
   return { success: true, groupId: data.id }
 }
 

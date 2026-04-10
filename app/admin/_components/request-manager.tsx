@@ -22,10 +22,10 @@ import { CSS } from '@dnd-kit/utilities'
 import type { Venue, MenuItemWithModifiers, MenuCategory } from '@/lib/supabase/types'
 import { ModifierGroupEditor } from './modifier-group-editor'
 import {
-  addMenuItem,
-  updateMenuItem,
-  deleteMenuItem,
-  reorderMenuItems,
+  createRequest,
+  updateRequest,
+  deleteRequest,
+  reorderRequests,
   addCategory,
 } from '@/app/actions/admin'
 
@@ -354,13 +354,13 @@ function SortableSection({
 
 // ── Main component ───────────────────────────────────────────
 
-type MenuManagerProps = {
+type RequestManagerProps = {
   venue: Venue
-  menuItems: MenuItemWithModifiers[]
+  requests: MenuItemWithModifiers[]
   categories: MenuCategory[]
 }
 
-export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) {
+export function RequestManager({ venue, requests, categories }: RequestManagerProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showAddForm, setShowAddForm] = useState(false)
@@ -402,7 +402,7 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
 
     setError(null)
     startTransition(async () => {
-      const result = await updateMenuItem(editingId, venue.id, {
+      const result = await updateRequest(editingId, venue.id, {
         name: editName.trim(),
         description: editDescription.trim() || null,
         price: editPrice.trim() ? parseFloat(editPrice.trim()) : null,
@@ -418,16 +418,16 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
     })
   }
 
-  const handleAddItem = () => {
+  const handleCreateRequest = () => {
     if (!newName.trim()) return
 
     setError(null)
     startTransition(async () => {
-      const maxOrder = menuItems.length > 0
-        ? Math.max(...menuItems.map((i) => i.sort_order))
+      const maxOrder = requests.length > 0
+        ? Math.max(...requests.map((i) => i.sort_order))
         : -1
 
-      const result = await addMenuItem({
+      const result = await createRequest({
         venue_id: venue.id,
         name: newName.trim(),
         description: newDescription.trim() || null,
@@ -452,7 +452,7 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
   const handleDelete = (itemId: string) => {
     setError(null)
     startTransition(async () => {
-      const result = await deleteMenuItem(itemId, venue.id)
+      const result = await deleteRequest(itemId, venue.id)
       if (result.error) {
         setError(result.error)
       } else {
@@ -482,7 +482,7 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
 
     setError(null)
     startTransition(async () => {
-      const result = await reorderMenuItems(venue.id, updates)
+      const result = await reorderRequests(venue.id, updates)
       if (result.error) {
         setError(result.error)
       } else {
@@ -508,10 +508,10 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
   }
 
   // Group items by category
-  const uncategorized = menuItems.filter((i) => !i.category)
+  const uncategorized = requests.filter((i) => !i.category)
   const grouped = new Map<string, { category: MenuCategory; items: MenuItemWithModifiers[] }>()
 
-  for (const item of menuItems) {
+  for (const item of requests) {
     if (item.category) {
       const existing = grouped.get(item.category.id)
       if (existing) {
@@ -565,7 +565,7 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
           onClick={() => { setShowAddForm(!showAddForm); setShowAddCategory(false); setEditingId(null) }}
           className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
         >
-          {showAddForm ? 'Cancel' : '+ Add Item'}
+          {showAddForm ? 'Cancel' : '+ Create Request'}
         </button>
         <button
           onClick={() => { setShowAddCategory(!showAddCategory); setShowAddForm(false); setEditingId(null) }}
@@ -599,7 +599,7 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
       {/* Add item form */}
       {showAddForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <h3 className="font-medium text-gray-900">New Menu Item</h3>
+          <h3 className="font-medium text-gray-900">New Request</h3>
           <input
             type="text"
             value={newName}
@@ -636,19 +636,19 @@ export function MenuManager({ venue, menuItems, categories }: MenuManagerProps) 
             ))}
           </select>
           <button
-            onClick={handleAddItem}
+            onClick={handleCreateRequest}
             disabled={isPending || !newName.trim()}
             className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
-            {isPending ? 'Adding...' : 'Add Item'}
+            {isPending ? 'Creating...' : 'Create Request'}
           </button>
         </div>
       )}
 
       {/* Item list */}
-      {menuItems.length === 0 ? (
+      {requests.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          No menu items yet. Add your first one above.
+          No requests yet. Create your first one above.
         </div>
       ) : (
         <div className="space-y-6">

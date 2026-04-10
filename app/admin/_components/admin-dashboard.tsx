@@ -4,19 +4,19 @@ import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import type { Venue, MenuItemWithModifiers, MenuCategory } from '@/lib/supabase/types'
 import { logout } from '@/app/actions/admin'
-import { MenuManager } from './menu-manager'
-import { VenueSettings } from './venue-settings'
+import { RequestManager } from './request-manager'
+import { WorkspaceSettings } from './workspace-settings'
 
 type AdminDashboardProps = {
   venue: Venue
-  menuItems: MenuItemWithModifiers[]
+  requests: MenuItemWithModifiers[]
   categories: MenuCategory[]
   activeTab: string
 }
 
 export function AdminDashboard({
   venue,
-  menuItems,
+  requests,
   categories,
   activeTab,
 }: AdminDashboardProps) {
@@ -41,7 +41,7 @@ export function AdminDashboard({
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">{venue.name}</h1>
-            <p className="text-xs text-gray-500">Promptly Admin</p>
+            <p className="text-xs text-gray-500">Dashboard</p>
           </div>
           <button
             onClick={handleLogout}
@@ -55,37 +55,37 @@ export function AdminDashboard({
         {/* Tabs */}
         <div className="max-w-2xl mx-auto px-4 flex gap-1">
           <button
-            onClick={() => switchTab('menu')}
+            onClick={() => switchTab('requests')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'menu'
+              activeTab === 'requests'
                 ? 'border-gray-900 text-gray-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Menu Items
+            Requests
           </button>
           <button
-            onClick={() => switchTab('settings')}
+            onClick={() => switchTab('workspace')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'settings'
+              activeTab === 'workspace'
                 ? 'border-gray-900 text-gray-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Settings
+            Workspace
           </button>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {activeTab === 'menu' ? (
-          <MenuManager
+        {activeTab === 'requests' ? (
+          <RequestManager
             venue={venue}
-            menuItems={menuItems}
+            requests={requests}
             categories={categories}
           />
         ) : (
-          <VenueSettings venue={venue} />
+          <WorkspaceSettings venue={venue} />
         )}
       </main>
     </div>
