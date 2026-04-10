@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Venue, MenuItemWithModifiers, MenuCategory } from '@/lib/supabase/types'
+import type { Venue, RequestWithModifiers, Category } from '@/lib/supabase/types'
 import { ModifierGroupEditor } from './modifier-group-editor'
 import {
   createRequest,
@@ -51,11 +51,11 @@ function SortableItem({
   onDelete,
   formatPrice,
 }: {
-  item: MenuItemWithModifiers
+  item: RequestWithModifiers
   venueId: string
   editingId: string | null
   isPending: boolean
-  categories: MenuCategory[]
+  categories: Category[]
   editName: string
   editDescription: string
   editPrice: string
@@ -64,7 +64,7 @@ function SortableItem({
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
-  onStartEdit: (item: MenuItemWithModifiers) => void
+  onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
   onDelete: (id: string) => void
@@ -245,12 +245,12 @@ function SortableSection({
   formatPrice,
 }: {
   title: string
-  items: MenuItemWithModifiers[]
-  onDragEnd: (event: DragEndEvent, sectionItems: MenuItemWithModifiers[]) => void
+  items: RequestWithModifiers[]
+  onDragEnd: (event: DragEndEvent, sectionItems: RequestWithModifiers[]) => void
   venueId: string
   editingId: string | null
   isPending: boolean
-  categories: MenuCategory[]
+  categories: Category[]
   editName: string
   editDescription: string
   editPrice: string
@@ -259,7 +259,7 @@ function SortableSection({
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
-  onStartEdit: (item: MenuItemWithModifiers) => void
+  onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
   onDelete: (id: string) => void
@@ -356,8 +356,8 @@ function SortableSection({
 
 type RequestManagerProps = {
   venue: Venue
-  requests: MenuItemWithModifiers[]
-  categories: MenuCategory[]
+  requests: RequestWithModifiers[]
+  categories: Category[]
 }
 
 export function RequestManager({ venue, requests, categories }: RequestManagerProps) {
@@ -383,7 +383,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   // Add category state
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  const startEditing = (item: MenuItemWithModifiers) => {
+  const startEditing = (item: RequestWithModifiers) => {
     setEditingId(item.id)
     setEditName(item.name)
     setEditDescription(item.description ?? '')
@@ -462,7 +462,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     })
   }
 
-  const handleDragEnd = (event: DragEndEvent, sectionItems: MenuItemWithModifiers[]) => {
+  const handleDragEnd = (event: DragEndEvent, sectionItems: RequestWithModifiers[]) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
@@ -509,7 +509,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
 
   // Group items by category
   const uncategorized = requests.filter((i) => !i.category)
-  const grouped = new Map<string, { category: MenuCategory; items: MenuItemWithModifiers[] }>()
+  const grouped = new Map<string, { category: Category; items: RequestWithModifiers[] }>()
 
   for (const item of requests) {
     if (item.category) {

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { MenuItemWithModifiers, SelectedModifier } from '@/lib/supabase/types'
+import type { RequestWithModifiers, SelectedModifier } from '@/lib/supabase/types'
 
 type ModifierModalProps = {
-  item: MenuItemWithModifiers
+  item: RequestWithModifiers
   onConfirm: (selectedModifiers: SelectedModifier[]) => void
   onClose: () => void
 }

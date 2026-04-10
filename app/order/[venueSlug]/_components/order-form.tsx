@@ -5,7 +5,7 @@ import type {
   Venue,
   Location,
   FulfillmentType,
-  MenuItemWithModifiers,
+  RequestWithModifiers,
   CartEntry,
   SelectedModifier,
 } from '@/lib/supabase/types'
@@ -37,12 +37,12 @@ function getTotalQuantityForItem(cart: CartEntry[], itemId: string): number {
 type OrderFormProps = {
   venue: Venue
   location: Location
-  menuItems: MenuItemWithModifiers[]
+  menuItems: RequestWithModifiers[]
 }
 
 export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
   const [cart, setCart] = useState<CartEntry[]>([])
-  const [modalItem, setModalItem] = useState<MenuItemWithModifiers | null>(null)
+  const [modalItem, setModalItem] = useState<RequestWithModifiers | null>(null)
   const [fulfillment, setFulfillment] = useState<FulfillmentType>(
     venue.allow_delivery ? 'delivery' : 'pickup'
   )
@@ -85,7 +85,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
   }, [])
 
   // Modifier items: open modal
-  const handleOpenModal = useCallback((item: MenuItemWithModifiers) => {
+  const handleOpenModal = useCallback((item: RequestWithModifiers) => {
     setModalItem(item)
   }, [])
 
@@ -207,10 +207,10 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
   }
 
   // ── Group menu items by category ───────────────────────────
-  const uncategorized: MenuItemWithModifiers[] = []
+  const uncategorized: RequestWithModifiers[] = []
   const categoryMap = new Map<
     string,
-    { name: string; sortOrder: number; items: MenuItemWithModifiers[] }
+    { name: string; sortOrder: number; items: RequestWithModifiers[] }
   >()
 
   for (const item of menuItems) {
@@ -234,7 +234,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
     (a, b) => a.sortOrder - b.sortOrder
   )
 
-  const renderMenuItemCard = (item: MenuItemWithModifiers) => {
+  const renderMenuItemCard = (item: RequestWithModifiers) => {
     const hasModifiers = item.modifier_groups.length > 0
     return (
       <MenuItemCard

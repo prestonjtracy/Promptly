@@ -1,9 +1,9 @@
 'use client'
 
-import type { MenuItemWithModifiers } from '@/lib/supabase/types'
+import type { RequestWithModifiers } from '@/lib/supabase/types'
 
 type MenuItemCardProps = {
-  item: MenuItemWithModifiers
+  item: RequestWithModifiers
   totalQuantity: number
   hasModifiers: boolean
   onAdd: () => void

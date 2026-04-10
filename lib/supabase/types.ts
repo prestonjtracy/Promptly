@@ -130,3 +130,27 @@ export type MenuItemWithModifiers = MenuItemWithCategory & {
 export type LocationWithVenue = Location & {
   venue: Venue
 }
+
+// ── Frontend aliases ─────────────────────────────────────────
+// These map the database-level names to platform-level concepts.
+// The underlying DB tables (menu_items, menu_categories, orders,
+// order_items) remain unchanged — these aliases let frontend code
+// think in terms of "requests" and "categories" instead.
+
+/** A request type that customers can select (maps to menu_items table) */
+export type Request = MenuItem
+
+/** A request with its category attached */
+export type RequestWithCategory = MenuItemWithCategory
+
+/** A request with category + modifier groups */
+export type RequestWithModifiers = MenuItemWithModifiers
+
+/** A grouping of requests (maps to menu_categories table) */
+export type Category = MenuCategory
+
+/** A customer submission (maps to orders table) */
+export type Submission = Order
+
+/** A line item in a submission (maps to order_items table) */
+export type SubmissionItem = OrderItem

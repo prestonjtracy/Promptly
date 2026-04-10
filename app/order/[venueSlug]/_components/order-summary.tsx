@@ -1,14 +1,14 @@
 'use client'
 
 import type {
-  MenuItemWithModifiers,
+  RequestWithModifiers,
   FulfillmentType,
   CartEntry,
 } from '@/lib/supabase/types'
 
 type OrderSummaryProps = {
   cart: CartEntry[]
-  menuItems: MenuItemWithModifiers[]
+  menuItems: RequestWithModifiers[]
   fulfillment: FulfillmentType
   deliveryLocation: string
   customerIdLabel: string | null

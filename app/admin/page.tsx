@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getAdminVenueId } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/server'
 import { AdminDashboard } from './_components/admin-dashboard'
-import type { MenuItemWithModifiers, MenuCategory, Venue } from '@/lib/supabase/types'
+import type { RequestWithModifiers, Category, Venue } from '@/lib/supabase/types'
 
 export const metadata = {
   title: 'Admin — Promptly',
@@ -46,8 +46,8 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
   return (
     <AdminDashboard
       venue={venue as unknown as Venue}
-      requests={(menuItems ?? []) as unknown as MenuItemWithModifiers[]}
-      categories={(categories ?? []) as unknown as MenuCategory[]}
+      requests={(menuItems ?? []) as unknown as RequestWithModifiers[]}
+      categories={(categories ?? []) as unknown as Category[]}
       activeTab={tab}
     />
   )

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Venue, Location, MenuItemWithModifiers } from '@/lib/supabase/types'
+import type { Venue, Location, RequestWithModifiers } from '@/lib/supabase/types'
 import { OrderForm } from './_components/order-form'
 
 export async function generateMetadata(props: {
@@ -97,7 +97,7 @@ export default async function OrderPage(props: {
     .eq('is_active', true)
     .order('sort_order')
 
-  const typedMenuItems = ((menuItems ?? []) as unknown as MenuItemWithModifiers[]).map(
+  const typedMenuItems = ((menuItems ?? []) as unknown as RequestWithModifiers[]).map(
     (item) => ({
       ...item,
       modifier_groups: (item.modifier_groups ?? [])

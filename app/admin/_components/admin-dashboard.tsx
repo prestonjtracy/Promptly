@@ -2,15 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
-import type { Venue, MenuItemWithModifiers, MenuCategory } from '@/lib/supabase/types'
+import type { Venue, RequestWithModifiers, Category } from '@/lib/supabase/types'
 import { logout } from '@/app/actions/admin'
 import { RequestManager } from './request-manager'
 import { WorkspaceSettings } from './workspace-settings'
 
 type AdminDashboardProps = {
   venue: Venue
-  requests: MenuItemWithModifiers[]
-  categories: MenuCategory[]
+  requests: RequestWithModifiers[]
+  categories: Category[]
   activeTab: string
 }
 
