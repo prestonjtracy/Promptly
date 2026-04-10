@@ -26,50 +26,42 @@ async function sendSlackNotification(
   data: SubmitOrderInput
 ) {
   const webhookUrl = process.env.SLACK_WEBHOOK_DEFAULT
-  console.log('[Slack] SLACK_WEBHOOK_DEFAULT:', webhookUrl ? `set (${webhookUrl.substring(0, 40)}...)` : 'NOT SET')
-  if (!webhookUrl) {
-    console.log('[Slack] Skipping — no webhook URL configured')
+  const botToken = process.env.SLACK_BOT_TOKEN
+
+  if (!webhookUrl && !botToken) {
+    console.log('[Slack] No webhook or bot token configured — skipping')
     return
   }
 
   try {
-    // Fetch venue, location, and menu item names
+    // Fetch venue (with default channel), location, and items (with per-item channel)
     const [venueRes, locationRes, menuItemsRes] = await Promise.all([
-      supabase.from('venues').select('name, customer_id_label, location_type_label').eq('id', data.venue_id).single(),
+      supabase
+        .from('venues')
+        .select('name, customer_id_label, location_type_label, default_slack_channel')
+        .eq('id', data.venue_id)
+        .single(),
       supabase.from('locations').select('name').eq('id', data.location_id).single(),
       supabase
         .from('menu_items')
-        .select('id, name')
+        .select('id, name, slack_channel')
         .in('id', data.items.map((i) => i.menu_item_id)),
     ])
 
     const venueName = venueRes.data?.name ?? 'Unknown venue'
     const customerIdLabel = venueRes.data?.customer_id_label ?? 'Customer ID'
     const locationTypeLabel = venueRes.data?.location_type_label ?? 'Location'
+    const defaultChannel = venueRes.data?.default_slack_channel ?? null
     const locationName = locationRes.data?.name ?? 'Unknown'
+
     const menuItemMap = new Map(
-      (menuItemsRes.data ?? []).map((mi: { id: string; name: string }) => [mi.id, mi.name])
+      (menuItemsRes.data ?? []).map((mi: { id: string; name: string; slack_channel: string | null }) => [
+        mi.id,
+        { name: mi.name, slack_channel: mi.slack_channel },
+      ])
     )
 
-    // Build item lines
-    const itemLines = data.items.map((item) => {
-      const name = menuItemMap.get(item.menu_item_id) ?? 'Unknown item'
-      let line = `• ${name} x${item.quantity}`
-      const mods = (item.selected_modifiers ?? [])
-      if (mods.length > 0) {
-        const modStrings = mods.map((m) => {
-          const prefix = m.modifier_type === 'remove' ? '−' : '+'
-          const price = m.modifier_type !== 'remove' && m.price_adjustment > 0
-            ? ` ($${m.price_adjustment.toFixed(2)})`
-            : ''
-          return `  ${prefix} ${m.option_name}${price}`
-        })
-        line += '\n' + modStrings.join('\n')
-      }
-      return line
-    })
-
-    // Build detail lines
+    // Build shared detail lines
     const details: string[] = []
     details.push(`*Fulfillment:* ${data.fulfillment === 'pickup' ? 'Pickup' : 'Delivery'}`)
     if (data.fulfillment === 'delivery' && data.delivery_location) {
@@ -82,17 +74,67 @@ async function sendSlackNotification(
       details.push(`*Notes:* ${data.notes}`)
     }
 
-    const message = {
-      text: `New order at ${venueName} — ${locationTypeLabel}: ${locationName}\n\n${itemLines.join('\n')}\n\n${details.join('\n')}`,
+    // Group items by their resolved Slack channel
+    // channel = item.slack_channel || venue.default_slack_channel || null
+    const channelGroups = new Map<string | null, typeof data.items>()
+
+    for (const item of data.items) {
+      const meta = menuItemMap.get(item.menu_item_id)
+      const channel = meta?.slack_channel || defaultChannel || null
+      const group = channelGroups.get(channel) ?? []
+      group.push(item)
+      channelGroups.set(channel, group)
     }
 
-    console.log('[Slack] Sending notification...')
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(message),
-    })
-    console.log('[Slack] Response:', res.status, await res.text())
+    // Build and send one message per channel
+    for (const [channel, items] of channelGroups) {
+      const itemLines = items.map((item) => {
+        const meta = menuItemMap.get(item.menu_item_id)
+        const name = meta?.name ?? 'Unknown item'
+        let line = `• ${name} x${item.quantity}`
+        const mods = item.selected_modifiers ?? []
+        if (mods.length > 0) {
+          const modStrings = mods.map((m) => {
+            const prefix = m.modifier_type === 'remove' ? '−' : '+'
+            const price =
+              m.modifier_type !== 'remove' && m.price_adjustment > 0
+                ? ` ($${m.price_adjustment.toFixed(2)})`
+                : ''
+            return `  ${prefix} ${m.option_name}${price}`
+          })
+          line += '\n' + modStrings.join('\n')
+        }
+        return line
+      })
+
+      const text = `New request at ${venueName} — ${locationTypeLabel}: ${locationName}\n\n${itemLines.join('\n')}\n\n${details.join('\n')}`
+
+      // Route: if we have a specific channel + bot token, use chat.postMessage
+      // Otherwise fall back to the default webhook
+      if (channel && botToken) {
+        // Strip leading # if present
+        const channelName = channel.replace(/^#/, '')
+        console.log(`[Slack] Routing to #${channelName} via Bot Token`)
+        const res = await fetch('https://slack.com/api/chat.postMessage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${botToken}`,
+          },
+          body: JSON.stringify({ channel: channelName, text }),
+        })
+        const body = await res.json()
+        console.log(`[Slack] #${channelName} response:`, body.ok ? 'ok' : body.error)
+      } else if (webhookUrl) {
+        console.log('[Slack] Sending via default webhook')
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        })
+        console.log('[Slack] Webhook response:', res.status, await res.text())
+      }
+    }
   } catch (err) {
     console.error('[Slack] Notification error:', err)
   }
@@ -142,7 +184,7 @@ export async function submitOrder(
       return { error: `Failed to submit items: ${itemsError.message}` }
     }
 
-    // Send Slack notification
+    // Send Slack notification(s)
     await sendSlackNotification(supabase, data)
 
     return { success: true, orderId: order.id }

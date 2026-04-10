@@ -12,6 +12,7 @@ export type Venue = {
   allow_delivery: boolean
   allow_notes: boolean
   delivery_location_placeholder: string | null
+  default_slack_channel: string | null
   passcode: string
   features: VenueFeatures
   created_at: string
@@ -50,6 +51,7 @@ export type MenuItem = {
   description: string | null
   price: number | null
   icon_url: string | null
+  slack_channel: string | null
   sort_order: number
   is_active: boolean
   created_at: string

@@ -41,10 +41,12 @@ function SortableItem({
   editDescription,
   editPrice,
   editCategoryId,
+  editSlackChannel,
   setEditName,
   setEditDescription,
   setEditPrice,
   setEditCategoryId,
+  setEditSlackChannel,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -60,10 +62,12 @@ function SortableItem({
   editDescription: string
   editPrice: string
   editCategoryId: string
+  editSlackChannel: string
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
+  setEditSlackChannel: (v: string) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
@@ -138,6 +142,19 @@ function SortableItem({
             </option>
           ))}
         </select>
+
+        {/* Slack routing */}
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">Slack Channel (optional)</label>
+          <input
+            type="text"
+            value={editSlackChannel}
+            onChange={(e) => setEditSlackChannel(e.target.value)}
+            placeholder="e.g. #bar, #kitchen"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <p className="text-xs text-gray-400">Leave blank to use the default channel.</p>
+        </div>
 
         {/* Modifier groups */}
         <div className="border-t border-gray-200 pt-3">
@@ -234,10 +251,12 @@ function SortableSection({
   editDescription,
   editPrice,
   editCategoryId,
+  editSlackChannel,
   setEditName,
   setEditDescription,
   setEditPrice,
   setEditCategoryId,
+  setEditSlackChannel,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -255,10 +274,12 @@ function SortableSection({
   editDescription: string
   editPrice: string
   editCategoryId: string
+  editSlackChannel: string
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
+  setEditSlackChannel: (v: string) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
@@ -294,10 +315,12 @@ function SortableSection({
               editDescription={editDescription}
               editPrice={editPrice}
               editCategoryId={editCategoryId}
+              editSlackChannel={editSlackChannel}
               setEditName={setEditName}
               setEditDescription={setEditDescription}
               setEditPrice={setEditPrice}
               setEditCategoryId={setEditCategoryId}
+              setEditSlackChannel={setEditSlackChannel}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
               onSaveEdit={onSaveEdit}
@@ -334,10 +357,12 @@ function SortableSection({
                 editDescription={editDescription}
                 editPrice={editPrice}
                 editCategoryId={editCategoryId}
+                editSlackChannel={editSlackChannel}
                 setEditName={setEditName}
                 setEditDescription={setEditDescription}
                 setEditPrice={setEditPrice}
                 setEditCategoryId={setEditCategoryId}
+                setEditSlackChannel={setEditSlackChannel}
                 onStartEdit={onStartEdit}
                 onCancelEdit={onCancelEdit}
                 onSaveEdit={onSaveEdit}
@@ -379,6 +404,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [editDescription, setEditDescription] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editCategoryId, setEditCategoryId] = useState<string>('')
+  const [editSlackChannel, setEditSlackChannel] = useState('')
 
   // Add category state
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -389,6 +415,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditDescription(item.description ?? '')
     setEditPrice(item.price !== null ? item.price.toString() : '')
     setEditCategoryId(item.category_id ?? '')
+    setEditSlackChannel(item.slack_channel ?? '')
     setShowAddForm(false)
     setShowAddCategory(false)
   }
@@ -407,6 +434,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         description: editDescription.trim() || null,
         price: editPrice.trim() ? parseFloat(editPrice.trim()) : null,
         category_id: editCategoryId || null,
+        slack_channel: editSlackChannel.trim() || null,
       })
 
       if (result.error) {
@@ -540,10 +568,12 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     editDescription,
     editPrice,
     editCategoryId,
+    editSlackChannel,
     setEditName,
     setEditDescription,
     setEditPrice,
     setEditCategoryId,
+    setEditSlackChannel,
     onStartEdit: startEditing,
     onCancelEdit: cancelEditing,
     onSaveEdit: handleSaveEdit,

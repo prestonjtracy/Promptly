@@ -67,6 +67,9 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
   )
 
   const [allowNotes, setAllowNotes] = useState(venue.allow_notes)
+  const [defaultSlackChannel, setDefaultSlackChannel] = useState(
+    venue.default_slack_channel ?? ''
+  )
 
   const handleSave = () => {
     setError(null)
@@ -87,6 +90,7 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
           : false,
         allow_notes: allowNotes,
         delivery_location_placeholder: deliveryPlaceholder.trim() || null,
+        default_slack_channel: defaultSlackChannel.trim() || null,
       })
 
       if (result.error) {
@@ -187,6 +191,31 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
           checked={allowNotes}
           onChange={setAllowNotes}
         />
+      </div>
+
+      {/* Notifications */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+        <h2 className="font-semibold text-gray-900">Notifications</h2>
+        <p className="text-sm text-gray-500">
+          Set a default Slack channel for request notifications. Individual
+          requests can override this with their own channel.
+        </p>
+        <div>
+          <label
+            htmlFor="default-slack"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Default Slack Channel
+          </label>
+          <input
+            id="default-slack"
+            type="text"
+            value={defaultSlackChannel}
+            onChange={(e) => setDefaultSlackChannel(e.target.value)}
+            placeholder="e.g. #orders"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+        </div>
       </div>
 
       {/* Save */}

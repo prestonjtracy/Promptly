@@ -85,6 +85,7 @@ export async function updateRequest(
     description: string | null
     price: number | null
     category_id: string | null
+    slack_channel: string | null
   }
 ) {
   const adminVenueId = await getAdminVenueId()
@@ -101,6 +102,7 @@ export async function updateRequest(
       description: data.description,
       price: data.price,
       category_id: data.category_id,
+      slack_channel: data.slack_channel,
     })
     .eq('id', itemId)
     .eq('venue_id', venueId)
@@ -162,6 +164,7 @@ export async function updateWorkspaceSettings(
     customer_id_required: boolean
     allow_notes: boolean
     delivery_location_placeholder: string | null
+    default_slack_channel: string | null
   }
 ) {
   const adminVenueId = await getAdminVenueId()
@@ -185,6 +188,7 @@ export async function updateWorkspaceSettings(
       customer_id_required: settings.customer_id_label ? settings.customer_id_required : false,
       allow_notes: settings.allow_notes,
       delivery_location_placeholder: settings.delivery_location_placeholder || null,
+      default_slack_channel: settings.default_slack_channel || null,
     })
     .eq('id', venueId)
 
