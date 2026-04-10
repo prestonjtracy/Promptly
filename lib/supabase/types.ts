@@ -13,8 +13,15 @@ export type Venue = {
   allow_notes: boolean
   delivery_location_placeholder: string | null
   passcode: string
+  features: VenueFeatures
   created_at: string
   updated_at: string
+}
+
+/** Feature flags for workspace-level gating. New features default to false. */
+export type VenueFeatures = {
+  analytics?: boolean
+  // Future: advanced_routing, premium_integrations, custom_workflows
 }
 
 export type Location = {

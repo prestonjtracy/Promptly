@@ -3,15 +3,20 @@
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import type { Venue, RequestWithModifiers, Category } from '@/lib/supabase/types'
+import { hasFeature } from '@/lib/features'
 import { logout } from '@/app/actions/admin'
 import { RequestManager } from './request-manager'
 import { WorkspaceSettings } from './workspace-settings'
+import { Analytics, type AnalyticsData } from './analytics'
+
+type DateRange = '7d' | '30d' | 'all'
 
 type AdminDashboardProps = {
   venue: Venue
   requests: RequestWithModifiers[]
   categories: Category[]
   activeTab: string
+  analyticsData: Record<DateRange, AnalyticsData> | null
 }
 
 export function AdminDashboard({
@@ -19,9 +24,12 @@ export function AdminDashboard({
   requests,
   categories,
   activeTab,
+  analyticsData,
 }: AdminDashboardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+
+  const analyticsEnabled = hasFeature(venue, 'analytics')
 
   const handleLogout = () => {
     startTransition(async () => {
@@ -64,6 +72,18 @@ export function AdminDashboard({
           >
             Requests
           </button>
+          {analyticsEnabled && (
+            <button
+              onClick={() => switchTab('analytics')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'analytics'
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Analytics
+            </button>
+          )}
           <button
             onClick={() => switchTab('workspace')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -78,14 +98,16 @@ export function AdminDashboard({
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {activeTab === 'requests' ? (
+        {activeTab === 'analytics' && analyticsEnabled && analyticsData ? (
+          <Analytics data={analyticsData} />
+        ) : activeTab === 'workspace' ? (
+          <WorkspaceSettings venue={venue} />
+        ) : (
           <RequestManager
             venue={venue}
             requests={requests}
             categories={categories}
           />
-        ) : (
-          <WorkspaceSettings venue={venue} />
         )}
       </main>
     </div>
