@@ -44,6 +44,8 @@ function SortableItem({
   editCategoryId,
   editSlackChannel,
   editImageUrl,
+  editInternalNotes,
+  editInternalOnly,
   isUploading,
   setEditName,
   setEditDescription,
@@ -51,6 +53,8 @@ function SortableItem({
   setEditCategoryId,
   setEditSlackChannel,
   setEditImageUrl,
+  setEditInternalNotes,
+  setEditInternalOnly,
   onImageUpload,
   onStartEdit,
   onCancelEdit,
@@ -69,6 +73,8 @@ function SortableItem({
   editCategoryId: string
   editSlackChannel: string
   editImageUrl: string | null
+  editInternalNotes: string
+  editInternalOnly: boolean
   isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
@@ -76,6 +82,8 @@ function SortableItem({
   setEditCategoryId: (v: string) => void
   setEditSlackChannel: (v: string) => void
   setEditImageUrl: (v: string | null) => void
+  setEditInternalNotes: (v: string) => void
+  setEditInternalOnly: (v: boolean) => void
   onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
@@ -195,6 +203,30 @@ function SortableItem({
           <p className="text-xs text-gray-400">Leave blank to use the default channel.</p>
         </div>
 
+        {/* Internal */}
+        <div className="border-t border-gray-200 pt-3 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={editInternalOnly}
+              onChange={(e) => setEditInternalOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">Internal only</span>
+            <span className="text-xs text-gray-400">(hidden from customers)</span>
+          </label>
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Internal Notes</label>
+            <textarea
+              value={editInternalNotes}
+              onChange={(e) => setEditInternalNotes(e.target.value)}
+              placeholder="Staff-only notes..."
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none resize-none"
+            />
+          </div>
+        </div>
+
         {/* Modifier groups */}
         <div className="border-t border-gray-200 pt-3">
           <ModifierGroupEditor
@@ -251,6 +283,9 @@ function SortableItem({
       >
         <div className="flex items-baseline gap-2">
           <span className="font-medium text-gray-900 truncate">{item.name}</span>
+          {item.internal_only && (
+            <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">Internal</span>
+          )}
           {item.price !== null && (
             <span className="text-sm text-gray-500 shrink-0">{formatPrice(item.price)}</span>
           )}
@@ -292,6 +327,8 @@ function SortableSection({
   editCategoryId,
   editSlackChannel,
   editImageUrl,
+  editInternalNotes,
+  editInternalOnly,
   isUploading,
   setEditName,
   setEditDescription,
@@ -299,6 +336,8 @@ function SortableSection({
   setEditCategoryId,
   setEditSlackChannel,
   setEditImageUrl,
+  setEditInternalNotes,
+  setEditInternalOnly,
   onImageUpload,
   onStartEdit,
   onCancelEdit,
@@ -319,6 +358,8 @@ function SortableSection({
   editCategoryId: string
   editSlackChannel: string
   editImageUrl: string | null
+  editInternalNotes: string
+  editInternalOnly: boolean
   isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
@@ -326,6 +367,8 @@ function SortableSection({
   setEditCategoryId: (v: string) => void
   setEditSlackChannel: (v: string) => void
   setEditImageUrl: (v: string | null) => void
+  setEditInternalNotes: (v: string) => void
+  setEditInternalOnly: (v: boolean) => void
   onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
@@ -364,6 +407,8 @@ function SortableSection({
               editCategoryId={editCategoryId}
               editSlackChannel={editSlackChannel}
               editImageUrl={editImageUrl}
+              editInternalNotes={editInternalNotes}
+              editInternalOnly={editInternalOnly}
               isUploading={isUploading}
               setEditName={setEditName}
               setEditDescription={setEditDescription}
@@ -371,6 +416,8 @@ function SortableSection({
               setEditCategoryId={setEditCategoryId}
               setEditSlackChannel={setEditSlackChannel}
               setEditImageUrl={setEditImageUrl}
+              setEditInternalNotes={setEditInternalNotes}
+              setEditInternalOnly={setEditInternalOnly}
               onImageUpload={onImageUpload}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
@@ -410,6 +457,8 @@ function SortableSection({
                 editCategoryId={editCategoryId}
                 editSlackChannel={editSlackChannel}
                 editImageUrl={editImageUrl}
+                editInternalNotes={editInternalNotes}
+                editInternalOnly={editInternalOnly}
                 isUploading={isUploading}
                 setEditName={setEditName}
                 setEditDescription={setEditDescription}
@@ -417,6 +466,8 @@ function SortableSection({
                 setEditCategoryId={setEditCategoryId}
                 setEditSlackChannel={setEditSlackChannel}
                 setEditImageUrl={setEditImageUrl}
+                setEditInternalNotes={setEditInternalNotes}
+                setEditInternalOnly={setEditInternalOnly}
                 onImageUpload={onImageUpload}
                 onStartEdit={onStartEdit}
                 onCancelEdit={onCancelEdit}
@@ -454,6 +505,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [newPrice, setNewPrice] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<string>('')
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null)
+  const [newInternalOnly, setNewInternalOnly] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
   // Edit item form state
@@ -463,6 +515,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [editCategoryId, setEditCategoryId] = useState<string>('')
   const [editSlackChannel, setEditSlackChannel] = useState('')
   const [editImageUrl, setEditImageUrl] = useState<string | null>(null)
+  const [editInternalNotes, setEditInternalNotes] = useState('')
+  const [editInternalOnly, setEditInternalOnly] = useState(false)
 
   // Add category state
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -475,6 +529,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditCategoryId(item.category_id ?? '')
     setEditSlackChannel(item.slack_channel ?? '')
     setEditImageUrl(item.icon_url ?? null)
+    setEditInternalNotes(item.internal_notes ?? '')
+    setEditInternalOnly(item.internal_only ?? false)
     setShowAddForm(false)
     setShowAddCategory(false)
   }
@@ -494,6 +550,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         price: editPrice.trim() ? parseFloat(editPrice.trim()) : null,
         category_id: editCategoryId || null,
         icon_url: editImageUrl,
+        internal_notes: editInternalNotes.trim() || null,
+        internal_only: editInternalOnly,
         slack_channel: editSlackChannel.trim() || null,
       })
 
@@ -522,6 +580,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         price: newPrice.trim() ? parseFloat(newPrice.trim()) : null,
         category_id: newCategoryId || null,
         icon_url: newImageUrl,
+        internal_notes: null,
+        internal_only: newInternalOnly,
         sort_order: maxOrder + 1,
       })
 
@@ -533,6 +593,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         setNewPrice('')
         setNewCategoryId('')
         setNewImageUrl(null)
+        setNewInternalOnly(false)
         setShowAddForm(false)
         router.refresh()
       }
@@ -648,6 +709,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     editCategoryId,
     editSlackChannel,
     editImageUrl,
+    editInternalNotes,
+    editInternalOnly,
     isUploading,
     setEditName,
     setEditDescription,
@@ -655,6 +718,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditCategoryId,
     setEditSlackChannel,
     setEditImageUrl,
+    setEditInternalNotes,
+    setEditInternalOnly,
     onImageUpload: handleImageUpload,
     onStartEdit: startEditing,
     onCancelEdit: cancelEditing,
@@ -776,6 +841,16 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
             )}
             {isUploading && <p className="text-xs text-gray-400">Uploading...</p>}
           </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={newInternalOnly}
+              onChange={(e) => setNewInternalOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">Internal only</span>
+            <span className="text-xs text-gray-400">(hidden from customers)</span>
+          </label>
           <button
             onClick={handleCreateRequest}
             disabled={isPending || !newName.trim()}

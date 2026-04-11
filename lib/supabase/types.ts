@@ -52,6 +52,8 @@ export type MenuItem = {
   price: number | null
   icon_url: string | null
   slack_channel: string | null
+  internal_notes: string | null
+  internal_only: boolean
   sort_order: number
   is_active: boolean
   created_at: string

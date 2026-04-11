@@ -95,6 +95,7 @@ export default async function OrderPage(props: {
     .select('*, category:menu_categories(*), modifier_groups(*, options:modifier_options(*))')
     .eq('venue_id', typedVenue.id)
     .eq('is_active', true)
+    .eq('internal_only', false)
     .order('sort_order')
 
   const typedMenuItems = ((menuItems ?? []) as unknown as RequestWithModifiers[]).map(
