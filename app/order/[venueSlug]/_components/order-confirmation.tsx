@@ -5,12 +5,14 @@ import type { Venue, Location } from '@/lib/supabase/types'
 type OrderConfirmationProps = {
   venue: Venue
   location: Location
+  orderNumber?: number
   onNewOrder: () => void
 }
 
 export function OrderConfirmation({
   venue,
   location,
+  orderNumber,
   onNewOrder,
 }: OrderConfirmationProps) {
   return (
@@ -32,6 +34,11 @@ export function OrderConfirmation({
           </svg>
         </div>
 
+        {orderNumber && (
+          <p className="text-sm font-medium text-gray-400 mb-2">
+            Order #{orderNumber}
+          </p>
+        )}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Request Submitted!
         </h1>

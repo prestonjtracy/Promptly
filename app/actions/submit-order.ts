@@ -18,12 +18,13 @@ type SubmitOrderInput = {
 }
 
 type SubmitOrderResult =
-  | { success: true; orderId: string; error?: undefined }
-  | { success?: undefined; error: string }
+  | { success: true; orderId: string; orderNumber: number; error?: undefined }
+  | { success?: undefined; orderId?: undefined; orderNumber?: undefined; error: string }
 
 async function sendSlackNotification(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  data: SubmitOrderInput
+  data: SubmitOrderInput,
+  orderNumber: number
 ) {
   const webhookUrl = process.env.SLACK_WEBHOOK_DEFAULT
   const botToken = process.env.SLACK_BOT_TOKEN
@@ -107,7 +108,7 @@ async function sendSlackNotification(
         return line
       })
 
-      const text = `New request at ${venueName} — ${locationTypeLabel}: ${locationName}\n\n${itemLines.join('\n')}\n\n${details.join('\n')}`
+      const text = `*Order #${orderNumber}*\nNew request at ${venueName} — ${locationTypeLabel}: ${locationName}\n\n${itemLines.join('\n')}\n\n${details.join('\n')}`
 
       // Route: if we have a specific channel + bot token, use chat.postMessage
       // Otherwise fall back to the default webhook
@@ -160,7 +161,7 @@ export async function submitOrder(
         customer_id_value: data.customer_id_value,
         notes: data.notes,
       })
-      .select('id')
+      .select('id, order_number')
       .single()
 
     if (orderError || !order) {
@@ -185,9 +186,9 @@ export async function submitOrder(
     }
 
     // Send Slack notification(s)
-    await sendSlackNotification(supabase, data)
+    await sendSlackNotification(supabase, data, order.order_number)
 
-    return { success: true, orderId: order.id }
+    return { success: true, orderId: order.id, orderNumber: order.order_number }
   } catch (err) {
     console.error('Unexpected submit error:', err)
     return { error: 'Something went wrong. Please try again.' }

@@ -50,6 +50,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
   const [customerId, setCustomerId] = useState('')
   const [notes, setNotes] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [orderNumber, setOrderNumber] = useState<number | undefined>()
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -169,6 +170,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
         if (result.error) {
           setError(result.error)
         } else {
+          setOrderNumber(result.orderNumber)
           setSubmitted(true)
         }
       } catch {
@@ -200,6 +202,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
         <OrderConfirmation
           venue={venue}
           location={location}
+          orderNumber={orderNumber}
           onNewOrder={handleNewOrder}
         />
       </div>

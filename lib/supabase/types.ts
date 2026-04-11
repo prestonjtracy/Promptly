@@ -69,6 +69,7 @@ export type OrderStatus =
 
 export type Order = {
   id: string
+  order_number: number
   venue_id: string
   location_id: string
   fulfillment: FulfillmentType
