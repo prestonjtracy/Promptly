@@ -55,6 +55,7 @@ export async function createRequest(data: {
   description: string | null
   price: number | null
   category_id: string | null
+  icon_url: string | null
   sort_order: number
 }) {
   const venueId = await getAdminVenueId()
@@ -70,6 +71,7 @@ export async function createRequest(data: {
     description: data.description,
     price: data.price,
     category_id: data.category_id,
+    icon_url: data.icon_url,
     sort_order: data.sort_order,
   })
 
@@ -85,6 +87,7 @@ export async function updateRequest(
     description: string | null
     price: number | null
     category_id: string | null
+    icon_url: string | null
     slack_channel: string | null
   }
 ) {
@@ -102,6 +105,7 @@ export async function updateRequest(
       description: data.description,
       price: data.price,
       category_id: data.category_id,
+      icon_url: data.icon_url,
       slack_channel: data.slack_channel,
     })
     .eq('id', itemId)

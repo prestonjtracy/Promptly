@@ -29,7 +29,14 @@ export function MenuItemCard({
           : 'border-gray-200 bg-white'
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
+        {item.icon_url && (
+          <img
+            src={item.icon_url}
+            alt={item.name}
+            className="w-14 h-14 rounded-lg object-cover shrink-0"
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>

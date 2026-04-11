@@ -28,6 +28,7 @@ import {
   reorderRequests,
   addCategory,
 } from '@/app/actions/admin'
+import { uploadRequestImage } from '@/app/actions/upload'
 
 // ── Sortable item wrapper ────────────────────────────────────
 
@@ -42,11 +43,15 @@ function SortableItem({
   editPrice,
   editCategoryId,
   editSlackChannel,
+  editImageUrl,
+  isUploading,
   setEditName,
   setEditDescription,
   setEditPrice,
   setEditCategoryId,
   setEditSlackChannel,
+  setEditImageUrl,
+  onImageUpload,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -63,11 +68,15 @@ function SortableItem({
   editPrice: string
   editCategoryId: string
   editSlackChannel: string
+  editImageUrl: string | null
+  isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
   setEditSlackChannel: (v: string) => void
+  setEditImageUrl: (v: string | null) => void
+  onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
@@ -142,6 +151,36 @@ function SortableItem({
             </option>
           ))}
         </select>
+
+        {/* Image */}
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">Image (optional)</label>
+          {editImageUrl && (
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+              <img src={editImageUrl} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setEditImageUrl(null)}
+                className="absolute top-0.5 right-0.5 w-5 h-5 bg-gray-900/70 text-white rounded-full text-xs flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          {!editImageUrl && (
+            <input
+              type="file"
+              accept="image/*"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onImageUpload(file, setEditImageUrl)
+              }}
+              className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+            />
+          )}
+          {isUploading && <p className="text-xs text-gray-400">Uploading...</p>}
+        </div>
 
         {/* Slack routing */}
         <div className="space-y-1">
@@ -252,11 +291,15 @@ function SortableSection({
   editPrice,
   editCategoryId,
   editSlackChannel,
+  editImageUrl,
+  isUploading,
   setEditName,
   setEditDescription,
   setEditPrice,
   setEditCategoryId,
   setEditSlackChannel,
+  setEditImageUrl,
+  onImageUpload,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
@@ -275,11 +318,15 @@ function SortableSection({
   editPrice: string
   editCategoryId: string
   editSlackChannel: string
+  editImageUrl: string | null
+  isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
   setEditPrice: (v: string) => void
   setEditCategoryId: (v: string) => void
   setEditSlackChannel: (v: string) => void
+  setEditImageUrl: (v: string | null) => void
+  onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
   onSaveEdit: () => void
@@ -316,11 +363,15 @@ function SortableSection({
               editPrice={editPrice}
               editCategoryId={editCategoryId}
               editSlackChannel={editSlackChannel}
+              editImageUrl={editImageUrl}
+              isUploading={isUploading}
               setEditName={setEditName}
               setEditDescription={setEditDescription}
               setEditPrice={setEditPrice}
               setEditCategoryId={setEditCategoryId}
               setEditSlackChannel={setEditSlackChannel}
+              setEditImageUrl={setEditImageUrl}
+              onImageUpload={onImageUpload}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
               onSaveEdit={onSaveEdit}
@@ -358,11 +409,15 @@ function SortableSection({
                 editPrice={editPrice}
                 editCategoryId={editCategoryId}
                 editSlackChannel={editSlackChannel}
+                editImageUrl={editImageUrl}
+                isUploading={isUploading}
                 setEditName={setEditName}
                 setEditDescription={setEditDescription}
                 setEditPrice={setEditPrice}
                 setEditCategoryId={setEditCategoryId}
                 setEditSlackChannel={setEditSlackChannel}
+                setEditImageUrl={setEditImageUrl}
+                onImageUpload={onImageUpload}
                 onStartEdit={onStartEdit}
                 onCancelEdit={onCancelEdit}
                 onSaveEdit={onSaveEdit}
@@ -398,6 +453,8 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [newDescription, setNewDescription] = useState('')
   const [newPrice, setNewPrice] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<string>('')
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Edit item form state
   const [editName, setEditName] = useState('')
@@ -405,6 +462,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [editPrice, setEditPrice] = useState('')
   const [editCategoryId, setEditCategoryId] = useState<string>('')
   const [editSlackChannel, setEditSlackChannel] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null)
 
   // Add category state
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -416,6 +474,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditPrice(item.price !== null ? item.price.toString() : '')
     setEditCategoryId(item.category_id ?? '')
     setEditSlackChannel(item.slack_channel ?? '')
+    setEditImageUrl(item.icon_url ?? null)
     setShowAddForm(false)
     setShowAddCategory(false)
   }
@@ -434,6 +493,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         description: editDescription.trim() || null,
         price: editPrice.trim() ? parseFloat(editPrice.trim()) : null,
         category_id: editCategoryId || null,
+        icon_url: editImageUrl,
         slack_channel: editSlackChannel.trim() || null,
       })
 
@@ -461,6 +521,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         description: newDescription.trim() || null,
         price: newPrice.trim() ? parseFloat(newPrice.trim()) : null,
         category_id: newCategoryId || null,
+        icon_url: newImageUrl,
         sort_order: maxOrder + 1,
       })
 
@@ -471,10 +532,27 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         setNewDescription('')
         setNewPrice('')
         setNewCategoryId('')
+        setNewImageUrl(null)
         setShowAddForm(false)
         router.refresh()
       }
     })
+  }
+
+  const handleImageUpload = async (
+    file: File,
+    setUrl: (url: string | null) => void
+  ) => {
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await uploadRequestImage(formData, venue.id)
+    setIsUploading(false)
+    if ('error' in result) {
+      setError(result.error)
+    } else {
+      setUrl(result.url)
+    }
   }
 
   const handleDelete = (itemId: string) => {
@@ -569,11 +647,15 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     editPrice,
     editCategoryId,
     editSlackChannel,
+    editImageUrl,
+    isUploading,
     setEditName,
     setEditDescription,
     setEditPrice,
     setEditCategoryId,
     setEditSlackChannel,
+    setEditImageUrl,
+    onImageUpload: handleImageUpload,
     onStartEdit: startEditing,
     onCancelEdit: cancelEditing,
     onSaveEdit: handleSaveEdit,
@@ -665,6 +747,35 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
               </option>
             ))}
           </select>
+          {/* Image */}
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Image (optional)</label>
+            {newImageUrl && (
+              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                <img src={newImageUrl} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setNewImageUrl(null)}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-gray-900/70 text-white rounded-full text-xs flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {!newImageUrl && (
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleImageUpload(file, setNewImageUrl)
+                }}
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              />
+            )}
+            {isUploading && <p className="text-xs text-gray-400">Uploading...</p>}
+          </div>
           <button
             onClick={handleCreateRequest}
             disabled={isPending || !newName.trim()}
