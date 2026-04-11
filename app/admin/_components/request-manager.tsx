@@ -208,7 +208,7 @@ function SortableItem({
           <button
             onClick={onSaveEdit}
             disabled={isPending || !editName.trim()}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {isPending ? 'Saving...' : 'Save'}
           </button>
@@ -228,7 +228,7 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3"
+      className="hover-card flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3"
     >
       {/* Drag handle */}
       <button
@@ -701,7 +701,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
           <button
             onClick={handleAddCategory}
             disabled={isPending || !newCategoryName.trim()}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {isPending ? 'Adding...' : 'Add Category'}
           </button>
@@ -779,7 +779,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
           <button
             onClick={handleCreateRequest}
             disabled={isPending || !newName.trim()}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {isPending ? 'Creating...' : 'Create Request'}
           </button>

@@ -169,6 +169,9 @@ export async function updateWorkspaceSettings(
     allow_notes: boolean
     delivery_location_placeholder: string | null
     default_slack_channel: string | null
+    primary_color: string
+    accent_color: string
+    logo_url: string | null
   }
 ) {
   const adminVenueId = await getAdminVenueId()
@@ -193,6 +196,9 @@ export async function updateWorkspaceSettings(
       allow_notes: settings.allow_notes,
       delivery_location_placeholder: settings.delivery_location_placeholder || null,
       default_slack_channel: settings.default_slack_channel || null,
+      primary_color: settings.primary_color,
+      accent_color: settings.accent_color,
+      logo_url: settings.logo_url,
     })
     .eq('id', venueId)
 

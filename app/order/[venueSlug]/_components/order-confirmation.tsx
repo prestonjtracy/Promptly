@@ -51,7 +51,7 @@ export function OrderConfirmation({
 
         <button
           onClick={onNewOrder}
-          className="px-6 py-3 bg-[var(--venue-accent)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+          className="hover-btn px-6 py-3 bg-[var(--venue-accent)] text-white rounded-lg font-medium"
         >
           Place Another Request
         </button>

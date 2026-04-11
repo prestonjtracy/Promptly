@@ -409,7 +409,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="w-full py-4 rounded-xl text-white font-semibold text-lg transition-opacity disabled:opacity-50"
+              className="hover-btn w-full py-4 rounded-xl text-white font-semibold text-lg disabled:opacity-50"
               style={{ backgroundColor: venue.accent_color }}
             >
               {isPending ? (

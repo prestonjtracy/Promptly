@@ -71,6 +71,11 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
     venue.default_slack_channel ?? ''
   )
 
+  // Branding
+  const [primaryColor, setPrimaryColor] = useState(venue.primary_color || '#1a1a1a')
+  const [accentColor, setAccentColor] = useState(venue.accent_color || '#2563eb')
+  const [logoUrl, setLogoUrl] = useState(venue.logo_url ?? '')
+
   const handleSave = () => {
     setError(null)
     setSaved(false)
@@ -91,6 +96,9 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
         allow_notes: allowNotes,
         delivery_location_placeholder: deliveryPlaceholder.trim() || null,
         default_slack_channel: defaultSlackChannel.trim() || null,
+        primary_color: primaryColor,
+        accent_color: accentColor,
+        logo_url: logoUrl.trim() || null,
       })
 
       if (result.error) {
@@ -218,6 +226,79 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
         </div>
       </div>
 
+      {/* Branding */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+        <h2 className="font-semibold text-gray-900">Branding</h2>
+        <p className="text-sm text-gray-500">
+          Customize the look of your customer-facing pages.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="primary-color" className="block text-sm font-medium text-gray-700 mb-1">
+              Primary Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="primary-color"
+                type="color"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+              />
+              <input
+                type="text"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 font-mono focus:border-gray-900 focus:outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="accent-color" className="block text-sm font-medium text-gray-700 mb-1">
+              Accent Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="accent-color"
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+              />
+              <input
+                type="text"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 font-mono focus:border-gray-900 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label htmlFor="logo-url" className="block text-sm font-medium text-gray-700 mb-1">
+            Logo URL
+          </label>
+          <input
+            id="logo-url"
+            type="text"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          {logoUrl && (
+            <div className="mt-2 flex items-center gap-3">
+              <img src={logoUrl} alt="Logo preview" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+              <button type="button" onClick={() => setLogoUrl('')} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: primaryColor }}>
+          <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white" style={{ background: accentColor }}>Aa</div>
+          <span className="text-sm text-white font-medium">Preview</span>
+        </div>
+      </div>
+
       {/* Save */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
@@ -229,7 +310,7 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="hover-btn px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {isPending ? 'Saving...' : 'Save'}
         </button>

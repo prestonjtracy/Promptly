@@ -23,7 +23,7 @@ export function MenuItemCard({
 
   return (
     <div
-      className={`rounded-xl border-2 p-4 transition-all ${
+      className={`hover-card rounded-xl border-2 p-4 ${
         isSelected
           ? 'border-[var(--venue-accent)] bg-[var(--venue-accent)]/5'
           : 'border-gray-200 bg-white'
@@ -65,7 +65,7 @@ export function MenuItemCard({
               <button
                 type="button"
                 onClick={onAddWithModifiers}
-                className="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
+                className="hover-btn px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700"
               >
                 {isSelected ? '+' : 'Add'}
               </button>
@@ -98,7 +98,7 @@ export function MenuItemCard({
             <button
               type="button"
               onClick={onAdd}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
+              className="hover-btn px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700"
             >
               Add
             </button>

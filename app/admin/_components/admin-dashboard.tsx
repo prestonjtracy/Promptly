@@ -54,7 +54,7 @@ export function AdminDashboard({
           <button
             onClick={handleLogout}
             disabled={isPending}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="hover-btn text-sm text-gray-500"
           >
             Log Out
           </button>

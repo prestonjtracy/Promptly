@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --venue-primary: #1a1a1a;
+  --venue-accent: #2563eb;
 }
 
 @theme inline {
@@ -25,26 +27,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Venue theming — set via inline styles on order page */
-:root {
-  --venue-primary: #000000;
-  --venue-accent: #3b82f6;
-}
-
-/* Order page utilities */
-.order-input:focus {
-  border-color: #c9a84c !important;
-  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
-  outline: none;
-}
-
-.order-submit {
-  transition: transform 0.1s ease, opacity 0.15s ease;
-}
-.order-submit:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
+/* ── Scrollbar ──────────────────────────────────────────────── */
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -53,19 +36,42 @@ body {
   display: none;
 }
 
-/* Hover darken effect for interactive elements */
-.hover-darken {
+/* ── Hover utilities ────────────────────────────────────────── */
+/* Consistent timing: 150ms ease-out across the entire app      */
+
+/* Buttons: darken + slight press */
+.hover-btn {
   cursor: pointer;
-  transition: filter 150ms ease, box-shadow 150ms ease;
+  transition: filter 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out;
 }
-.hover-darken:hover {
-  filter: brightness(0.9);
+.hover-btn:hover {
+  filter: brightness(0.92);
+}
+.hover-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
-/* Item card lift on hover */
-.card-hover {
-  transition: box-shadow 150ms ease;
+/* Cards: lift + shadow grow */
+.hover-card {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
 }
-.card-hover:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+.hover-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* List rows: subtle background tint */
+.hover-row {
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+.hover-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Focus ring for inputs (uses venue accent) */
+.focus-accent:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--venue-accent, #2563eb);
+  border-color: var(--venue-accent, #2563eb);
 }
