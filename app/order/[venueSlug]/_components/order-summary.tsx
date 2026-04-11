@@ -53,8 +53,8 @@ export function OrderSummary({
   })
 
   return (
-    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-      <h3 className="font-semibold text-gray-900">Summary</h3>
+    <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm space-y-4">
+      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Summary</h3>
 
       <ul className="space-y-3">
         {entries.map((e) => {

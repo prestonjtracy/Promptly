@@ -23,82 +23,78 @@ export function MenuItemCard({
 
   return (
     <div
-      className={`hover-card rounded-xl border-2 p-4 ${
+      className={`hover-card rounded-xl border bg-white p-5 shadow-sm ${
         isSelected
-          ? 'border-[var(--venue-accent)] bg-[var(--venue-accent)]/5'
-          : 'border-gray-200 bg-white'
+          ? 'border-[var(--venue-accent)] ring-1 ring-[var(--venue-accent)]/20'
+          : 'border-gray-100'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-4">
         {item.icon_url && (
           <img
             src={item.icon_url}
             alt={item.name}
-            className="w-14 h-14 rounded-lg object-cover shrink-0"
+            className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm"
           />
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
-            {item.price !== null && (
-              <span className="text-sm text-gray-500 shrink-0">
-                ${item.price.toFixed(2)}
-              </span>
-            )}
-          </div>
+          <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">{item.name}</h3>
           {item.description && (
-            <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+            <p className="text-[13px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
               {item.description}
+            </p>
+          )}
+          {item.price !== null && (
+            <p className="text-sm font-semibold text-gray-900 mt-2 tabular-nums">
+              ${item.price.toFixed(2)}
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 pt-0.5">
           {hasModifiers ? (
-            // Items with modifiers: always show "Add" button that opens modal
             <div className="flex items-center gap-2">
               {isSelected && (
-                <span className="w-7 h-7 rounded-full bg-[var(--venue-accent)] flex items-center justify-center text-xs font-bold text-white">
+                <span className="w-7 h-7 rounded-full bg-[var(--venue-accent)] flex items-center justify-center text-xs font-bold text-white shadow-sm">
                   {totalQuantity}
                 </span>
               )}
               <button
                 type="button"
                 onClick={onAddWithModifiers}
-                className="hover-btn px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700"
+                className="hover-btn h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 shadow-sm"
               >
                 {isSelected ? '+' : 'Add'}
               </button>
             </div>
           ) : isSelected ? (
-            // Items without modifiers: show +/- stepper
-            <>
+            <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
               <button
                 type="button"
                 onClick={onRemove}
-                className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-lg font-bold text-gray-700 hover:bg-gray-300 transition-colors active:scale-95"
+                className="hover-btn w-9 h-9 flex items-center justify-center text-lg font-bold text-gray-500 rounded-l-lg"
                 aria-label={`Decrease ${item.name} quantity`}
               >
                 −
               </button>
-              <span className="w-6 text-center font-semibold text-gray-900">
+              <span className="w-7 text-center text-sm font-bold text-gray-900 tabular-nums">
                 {totalQuantity}
               </span>
               <button
                 type="button"
                 onClick={onAdd}
-                className="w-9 h-9 rounded-full bg-[var(--venue-accent)] flex items-center justify-center text-lg font-bold text-white hover:opacity-90 transition-opacity active:scale-95"
+                className="hover-btn w-9 h-9 flex items-center justify-center text-lg font-bold text-white rounded-r-lg"
+                style={{ backgroundColor: 'var(--venue-accent)' }}
                 aria-label={`Increase ${item.name} quantity`}
               >
                 +
               </button>
-            </>
+            </div>
           ) : (
-            // Items without modifiers: initial "Add" button
             <button
               type="button"
               onClick={onAdd}
-              className="hover-btn px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium text-gray-700"
+              className="hover-btn h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 shadow-sm"
             >
               Add
             </button>

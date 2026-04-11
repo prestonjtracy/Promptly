@@ -264,7 +264,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
     >
       {/* Header */}
       <header
-        className="sticky top-0 z-10 px-4 py-4 shadow-sm"
+        className="sticky top-0 z-10 px-4 py-4 shadow-md"
         style={{ backgroundColor: venue.primary_color }}
       >
         <div className="max-w-lg mx-auto flex items-center gap-3">
@@ -284,7 +284,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-8">
         {/* Menu items */}
         {menuItems.length === 0 ? (
           <div className="text-center py-12">
@@ -304,7 +304,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
             {/* Categorized items */}
             {sortedCategories.map((cat) => (
               <section key={cat.name} className="space-y-3">
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">
                   {cat.name}
                 </h2>
                 {cat.items.map(renderMenuItemCard)}
@@ -312,7 +312,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
             ))}
 
             {/* ── Below menu: fulfillment, delivery location, customer ID, notes ── */}
-            <div className="border-t border-gray-200 pt-6 space-y-5">
+            <div className="border-t border-gray-100 pt-8 space-y-5">
               {/* Fulfillment toggle */}
               <FulfillmentToggle
                 value={fulfillment}
@@ -337,7 +337,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
                     value={deliveryLocation}
                     onChange={(e) => setDeliveryLocation(e.target.value)}
                     placeholder={venue.delivery_location_placeholder || `e.g. "Hole 7", "Poolside chair 3", "Room 412"`}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors"
                   />
                 </div>
               )}
@@ -367,7 +367,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Any special requests..."
                     rows={2}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors resize-none"
                   />
                 </div>
               )}
@@ -404,12 +404,12 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
 
       {/* Sticky submit bar */}
       {totalItems > 0 && (
-        <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 p-4 z-10">
+        <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(0,0,0,0.06)] p-4 z-10">
           <div className="max-w-lg mx-auto">
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="hover-btn w-full py-4 rounded-xl text-white font-semibold text-lg disabled:opacity-50"
+              className="hover-btn w-full py-4 rounded-2xl text-white font-bold text-base shadow-lg disabled:opacity-50"
               style={{ backgroundColor: venue.accent_color }}
             >
               {isPending ? (
