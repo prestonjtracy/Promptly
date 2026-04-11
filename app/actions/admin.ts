@@ -58,6 +58,7 @@ export async function createRequest(data: {
   icon_url: string | null
   internal_notes: string | null
   internal_only: boolean
+  internal_category: string | null
   sort_order: number
 }) {
   const venueId = await getAdminVenueId()
@@ -76,6 +77,7 @@ export async function createRequest(data: {
     icon_url: data.icon_url,
     internal_notes: data.internal_notes,
     internal_only: data.internal_only,
+    internal_category: data.internal_category,
     sort_order: data.sort_order,
   })
 
@@ -94,6 +96,7 @@ export async function updateRequest(
     icon_url: string | null
     internal_notes: string | null
     internal_only: boolean
+    internal_category: string | null
     slack_channel: string | null
   }
 ) {
@@ -114,6 +117,7 @@ export async function updateRequest(
       icon_url: data.icon_url,
       internal_notes: data.internal_notes,
       internal_only: data.internal_only,
+      internal_category: data.internal_category,
       slack_channel: data.slack_channel,
     })
     .eq('id', itemId)

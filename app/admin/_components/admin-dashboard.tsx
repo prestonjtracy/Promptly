@@ -85,6 +85,16 @@ export function AdminDashboard({
             </button>
           )}
           <button
+            onClick={() => switchTab('internal')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'internal'
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Internal
+          </button>
+          <button
             onClick={() => switchTab('workspace')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'workspace'
@@ -100,6 +110,15 @@ export function AdminDashboard({
       <main className="max-w-2xl mx-auto px-4 py-6">
         {activeTab === 'analytics' && analyticsEnabled && analyticsData ? (
           <Analytics data={analyticsData} />
+        ) : activeTab === 'internal' ? (
+          <RequestManager
+            venue={venue}
+            requests={requests.filter(
+              (r) => r.internal_only || (r.internal_notes && r.internal_notes.trim() !== '')
+            )}
+            categories={categories}
+            internalView
+          />
         ) : activeTab === 'workspace' ? (
           <WorkspaceSettings venue={venue} />
         ) : (

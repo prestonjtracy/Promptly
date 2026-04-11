@@ -54,6 +54,7 @@ export type MenuItem = {
   slack_channel: string | null
   internal_notes: string | null
   internal_only: boolean
+  internal_category: string | null
   sort_order: number
   is_active: boolean
   created_at: string

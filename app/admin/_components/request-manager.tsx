@@ -46,6 +46,7 @@ function SortableItem({
   editImageUrl,
   editInternalNotes,
   editInternalOnly,
+  editInternalCategory,
   isUploading,
   setEditName,
   setEditDescription,
@@ -55,6 +56,7 @@ function SortableItem({
   setEditImageUrl,
   setEditInternalNotes,
   setEditInternalOnly,
+  setEditInternalCategory,
   onImageUpload,
   onStartEdit,
   onCancelEdit,
@@ -75,6 +77,7 @@ function SortableItem({
   editImageUrl: string | null
   editInternalNotes: string
   editInternalOnly: boolean
+  editInternalCategory: string
   isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
@@ -84,6 +87,7 @@ function SortableItem({
   setEditImageUrl: (v: string | null) => void
   setEditInternalNotes: (v: string) => void
   setEditInternalOnly: (v: boolean) => void
+  setEditInternalCategory: (v: string) => void
   onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
@@ -225,6 +229,16 @@ function SortableItem({
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none resize-none"
             />
           </div>
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Internal Category</label>
+            <input
+              type="text"
+              value={editInternalCategory}
+              onChange={(e) => setEditInternalCategory(e.target.value)}
+              placeholder='e.g. "Inventory", "Prep", "Weekend Only"'
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            />
+          </div>
         </div>
 
         {/* Modifier groups */}
@@ -329,6 +343,7 @@ function SortableSection({
   editImageUrl,
   editInternalNotes,
   editInternalOnly,
+  editInternalCategory,
   isUploading,
   setEditName,
   setEditDescription,
@@ -338,6 +353,7 @@ function SortableSection({
   setEditImageUrl,
   setEditInternalNotes,
   setEditInternalOnly,
+  setEditInternalCategory,
   onImageUpload,
   onStartEdit,
   onCancelEdit,
@@ -360,6 +376,7 @@ function SortableSection({
   editImageUrl: string | null
   editInternalNotes: string
   editInternalOnly: boolean
+  editInternalCategory: string
   isUploading: boolean
   setEditName: (v: string) => void
   setEditDescription: (v: string) => void
@@ -369,6 +386,7 @@ function SortableSection({
   setEditImageUrl: (v: string | null) => void
   setEditInternalNotes: (v: string) => void
   setEditInternalOnly: (v: boolean) => void
+  setEditInternalCategory: (v: string) => void
   onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
   onStartEdit: (item: RequestWithModifiers) => void
   onCancelEdit: () => void
@@ -409,6 +427,7 @@ function SortableSection({
               editImageUrl={editImageUrl}
               editInternalNotes={editInternalNotes}
               editInternalOnly={editInternalOnly}
+              editInternalCategory={editInternalCategory}
               isUploading={isUploading}
               setEditName={setEditName}
               setEditDescription={setEditDescription}
@@ -418,6 +437,7 @@ function SortableSection({
               setEditImageUrl={setEditImageUrl}
               setEditInternalNotes={setEditInternalNotes}
               setEditInternalOnly={setEditInternalOnly}
+              setEditInternalCategory={setEditInternalCategory}
               onImageUpload={onImageUpload}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
@@ -459,6 +479,7 @@ function SortableSection({
                 editImageUrl={editImageUrl}
                 editInternalNotes={editInternalNotes}
                 editInternalOnly={editInternalOnly}
+                editInternalCategory={editInternalCategory}
                 isUploading={isUploading}
                 setEditName={setEditName}
                 setEditDescription={setEditDescription}
@@ -468,6 +489,7 @@ function SortableSection({
                 setEditImageUrl={setEditImageUrl}
                 setEditInternalNotes={setEditInternalNotes}
                 setEditInternalOnly={setEditInternalOnly}
+                setEditInternalCategory={setEditInternalCategory}
                 onImageUpload={onImageUpload}
                 onStartEdit={onStartEdit}
                 onCancelEdit={onCancelEdit}
@@ -489,9 +511,10 @@ type RequestManagerProps = {
   venue: Venue
   requests: RequestWithModifiers[]
   categories: Category[]
+  internalView?: boolean
 }
 
-export function RequestManager({ venue, requests, categories }: RequestManagerProps) {
+export function RequestManager({ venue, requests, categories, internalView }: RequestManagerProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showAddForm, setShowAddForm] = useState(false)
@@ -517,6 +540,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   const [editImageUrl, setEditImageUrl] = useState<string | null>(null)
   const [editInternalNotes, setEditInternalNotes] = useState('')
   const [editInternalOnly, setEditInternalOnly] = useState(false)
+  const [editInternalCategory, setEditInternalCategory] = useState('')
 
   // Add category state
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -531,6 +555,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditImageUrl(item.icon_url ?? null)
     setEditInternalNotes(item.internal_notes ?? '')
     setEditInternalOnly(item.internal_only ?? false)
+    setEditInternalCategory(item.internal_category ?? '')
     setShowAddForm(false)
     setShowAddCategory(false)
   }
@@ -552,6 +577,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         icon_url: editImageUrl,
         internal_notes: editInternalNotes.trim() || null,
         internal_only: editInternalOnly,
+        internal_category: editInternalCategory.trim() || null,
         slack_channel: editSlackChannel.trim() || null,
       })
 
@@ -582,6 +608,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
         icon_url: newImageUrl,
         internal_notes: null,
         internal_only: newInternalOnly,
+        internal_category: null,
         sort_order: maxOrder + 1,
       })
 
@@ -675,22 +702,43 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
   }
 
   // Group items by category
-  const uncategorized = requests.filter((i) => !i.category)
-  const grouped = new Map<string, { category: Category; items: RequestWithModifiers[] }>()
+  // In internal view, group by internal_category string instead of menu category
+  const uncategorized = internalView
+    ? requests.filter((i) => !i.internal_category)
+    : requests.filter((i) => !i.category)
 
-  for (const item of requests) {
-    if (item.category) {
-      const existing = grouped.get(item.category.id)
-      if (existing) {
-        existing.items.push(item)
-      } else {
-        grouped.set(item.category.id, { category: item.category, items: [item] })
+  const grouped = new Map<string, { category: Category; items: RequestWithModifiers[] }>()
+  const internalGrouped = new Map<string, { label: string; items: RequestWithModifiers[] }>()
+
+  if (internalView) {
+    for (const item of requests) {
+      if (item.internal_category) {
+        const existing = internalGrouped.get(item.internal_category)
+        if (existing) {
+          existing.items.push(item)
+        } else {
+          internalGrouped.set(item.internal_category, { label: item.internal_category, items: [item] })
+        }
+      }
+    }
+  } else {
+    for (const item of requests) {
+      if (item.category) {
+        const existing = grouped.get(item.category.id)
+        if (existing) {
+          existing.items.push(item)
+        } else {
+          grouped.set(item.category.id, { category: item.category, items: [item] })
+        }
       }
     }
   }
 
   const sortedGroups = Array.from(grouped.values()).sort(
     (a, b) => a.category.sort_order - b.category.sort_order
+  )
+  const sortedInternalGroups = Array.from(internalGrouped.values()).sort(
+    (a, b) => a.label.localeCompare(b.label)
   )
 
   const formatPrice = (price: number | null) => {
@@ -711,6 +759,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     editImageUrl,
     editInternalNotes,
     editInternalOnly,
+    editInternalCategory,
     isUploading,
     setEditName,
     setEditDescription,
@@ -720,6 +769,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
     setEditImageUrl,
     setEditInternalNotes,
     setEditInternalOnly,
+    setEditInternalCategory,
     onImageUpload: handleImageUpload,
     onStartEdit: startEditing,
     onCancelEdit: cancelEditing,
@@ -864,7 +914,7 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
       {/* Item list */}
       {requests.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          No requests yet. Create your first one above.
+          {internalView ? 'No internal items yet.' : 'No requests yet. Create your first one above.'}
         </div>
       ) : (
         <div className="space-y-6">
@@ -877,15 +927,25 @@ export function RequestManager({ venue, requests, categories }: RequestManagerPr
             />
           )}
 
-          {sortedGroups.map(({ category, items }) => (
-            <SortableSection
-              key={category.id}
-              title={category.name}
-              items={items}
-              onDragEnd={handleDragEnd}
-              {...sharedProps}
-            />
-          ))}
+          {internalView
+            ? sortedInternalGroups.map(({ label, items }) => (
+                <SortableSection
+                  key={label}
+                  title={label}
+                  items={items}
+                  onDragEnd={handleDragEnd}
+                  {...sharedProps}
+                />
+              ))
+            : sortedGroups.map(({ category, items }) => (
+                <SortableSection
+                  key={category.id}
+                  title={category.name}
+                  items={items}
+                  onDragEnd={handleDragEnd}
+                  {...sharedProps}
+                />
+              ))}
         </div>
       )}
     </div>
