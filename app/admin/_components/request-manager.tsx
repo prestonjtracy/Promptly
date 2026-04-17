@@ -1,0 +1,953 @@
+'use client'
+
+import { useState, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import type { Venue, RequestWithModifiers, Category } from '@/lib/supabase/types'
+import { ModifierGroupEditor } from './modifier-group-editor'
+import {
+  createRequest,
+  updateRequest,
+  deleteRequest,
+  reorderRequests,
+  addCategory,
+} from '@/app/actions/admin'
+import { uploadRequestImage } from '@/app/actions/upload'
+
+// ── Sortable item wrapper ────────────────────────────────────
+
+function SortableItem({
+  item,
+  venueId,
+  editingId,
+  isPending,
+  categories,
+  editName,
+  editDescription,
+  editPrice,
+  editCategoryId,
+  editSlackChannel,
+  editImageUrl,
+  editInternalNotes,
+  editInternalOnly,
+  editInternalCategory,
+  isUploading,
+  setEditName,
+  setEditDescription,
+  setEditPrice,
+  setEditCategoryId,
+  setEditSlackChannel,
+  setEditImageUrl,
+  setEditInternalNotes,
+  setEditInternalOnly,
+  setEditInternalCategory,
+  onImageUpload,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onDelete,
+  formatPrice,
+}: {
+  item: RequestWithModifiers
+  venueId: string
+  editingId: string | null
+  isPending: boolean
+  categories: Category[]
+  editName: string
+  editDescription: string
+  editPrice: string
+  editCategoryId: string
+  editSlackChannel: string
+  editImageUrl: string | null
+  editInternalNotes: string
+  editInternalOnly: boolean
+  editInternalCategory: string
+  isUploading: boolean
+  setEditName: (v: string) => void
+  setEditDescription: (v: string) => void
+  setEditPrice: (v: string) => void
+  setEditCategoryId: (v: string) => void
+  setEditSlackChannel: (v: string) => void
+  setEditImageUrl: (v: string | null) => void
+  setEditInternalNotes: (v: string) => void
+  setEditInternalOnly: (v: boolean) => void
+  setEditInternalCategory: (v: string) => void
+  onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
+  onStartEdit: (item: RequestWithModifiers) => void
+  onCancelEdit: () => void
+  onSaveEdit: () => void
+  onDelete: (id: string) => void
+  formatPrice: (price: number | null) => string | null
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  if (editingId === item.id) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="bg-white border-2 border-gray-900 rounded-xl p-4 space-y-3"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium text-gray-900 text-sm">Edit Item</h3>
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Cancel
+          </button>
+        </div>
+        <input
+          type="text"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          placeholder="Item name *"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+        />
+        <input
+          type="text"
+          value={editDescription}
+          onChange={(e) => setEditDescription(e.target.value)}
+          placeholder="Description (optional)"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+        />
+        <input
+          type="number"
+          value={editPrice}
+          onChange={(e) => setEditPrice(e.target.value)}
+          placeholder="Price (optional)"
+          step="0.01"
+          min="0"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+        />
+        <select
+          value={editCategoryId}
+          onChange={(e) => setEditCategoryId(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-gray-900 focus:outline-none"
+        >
+          <option value="">No category</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Image */}
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">Image (optional)</label>
+          {editImageUrl && (
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+              <img src={editImageUrl} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setEditImageUrl(null)}
+                className="absolute top-0.5 right-0.5 w-5 h-5 bg-gray-900/70 text-white rounded-full text-xs flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          {!editImageUrl && (
+            <input
+              type="file"
+              accept="image/*"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onImageUpload(file, setEditImageUrl)
+              }}
+              className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+            />
+          )}
+          {isUploading && <p className="text-xs text-gray-400">Uploading...</p>}
+        </div>
+
+        {/* Slack routing */}
+        <div className="space-y-1">
+          <label className="block text-xs text-gray-500">Slack Channel (optional)</label>
+          <input
+            type="text"
+            value={editSlackChannel}
+            onChange={(e) => setEditSlackChannel(e.target.value)}
+            placeholder="e.g. #bar, #kitchen"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <p className="text-xs text-gray-400">Leave blank to use the default channel.</p>
+        </div>
+
+        {/* Internal */}
+        <div className="border-t border-gray-200 pt-3 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={editInternalOnly}
+              onChange={(e) => setEditInternalOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">Internal only</span>
+            <span className="text-xs text-gray-400">(hidden from customers)</span>
+          </label>
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Internal Notes</label>
+            <textarea
+              value={editInternalNotes}
+              onChange={(e) => setEditInternalNotes(e.target.value)}
+              placeholder="Staff-only notes..."
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none resize-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Internal Category</label>
+            <input
+              type="text"
+              value={editInternalCategory}
+              onChange={(e) => setEditInternalCategory(e.target.value)}
+              placeholder='e.g. "Inventory", "Prep", "Weekend Only"'
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Modifier groups */}
+        <div className="border-t border-gray-200 pt-3">
+          <ModifierGroupEditor
+            menuItemId={item.id}
+            venueId={venueId}
+            modifierGroups={item.modifier_groups ?? []}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onSaveEdit}
+            disabled={isPending || !editName.trim()}
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            {isPending ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            onClick={() => onDelete(item.id)}
+            disabled={isPending}
+            className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="hover-card flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-3"
+    >
+      {/* Drag handle */}
+      <button
+        type="button"
+        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-grab active:cursor-grabbing touch-none"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+
+      {/* Item info — tap to edit */}
+      <button
+        type="button"
+        onClick={() => onStartEdit(item)}
+        className="flex-1 min-w-0 text-left"
+      >
+        <div className="flex items-baseline gap-2">
+          <span className="font-medium text-gray-900 truncate">{item.name}</span>
+          {item.internal_only && (
+            <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">Internal</span>
+          )}
+          {item.price !== null && (
+            <span className="text-sm text-gray-500 shrink-0">{formatPrice(item.price)}</span>
+          )}
+        </div>
+        {item.description && (
+          <p className="text-sm text-gray-500 truncate">{item.description}</p>
+        )}
+      </button>
+
+      {/* Edit pencil icon */}
+      <button
+        type="button"
+        onClick={() => onStartEdit(item)}
+        disabled={isPending}
+        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors disabled:opacity-50"
+        aria-label={`Edit ${item.name}`}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+// ── Sortable section (one per category or uncategorized) ─────
+
+function SortableSection({
+  title,
+  items,
+  onDragEnd,
+  venueId,
+  editingId,
+  isPending,
+  categories,
+  editName,
+  editDescription,
+  editPrice,
+  editCategoryId,
+  editSlackChannel,
+  editImageUrl,
+  editInternalNotes,
+  editInternalOnly,
+  editInternalCategory,
+  isUploading,
+  setEditName,
+  setEditDescription,
+  setEditPrice,
+  setEditCategoryId,
+  setEditSlackChannel,
+  setEditImageUrl,
+  setEditInternalNotes,
+  setEditInternalOnly,
+  setEditInternalCategory,
+  onImageUpload,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onDelete,
+  formatPrice,
+}: {
+  title: string
+  items: RequestWithModifiers[]
+  onDragEnd: (event: DragEndEvent, sectionItems: RequestWithModifiers[]) => void
+  venueId: string
+  editingId: string | null
+  isPending: boolean
+  categories: Category[]
+  editName: string
+  editDescription: string
+  editPrice: string
+  editCategoryId: string
+  editSlackChannel: string
+  editImageUrl: string | null
+  editInternalNotes: string
+  editInternalOnly: boolean
+  editInternalCategory: string
+  isUploading: boolean
+  setEditName: (v: string) => void
+  setEditDescription: (v: string) => void
+  setEditPrice: (v: string) => void
+  setEditCategoryId: (v: string) => void
+  setEditSlackChannel: (v: string) => void
+  setEditImageUrl: (v: string | null) => void
+  setEditInternalNotes: (v: string) => void
+  setEditInternalOnly: (v: boolean) => void
+  setEditInternalCategory: (v: string) => void
+  onImageUpload: (file: File, setUrl: (url: string | null) => void) => void
+  onStartEdit: (item: RequestWithModifiers) => void
+  onCancelEdit: () => void
+  onSaveEdit: () => void
+  onDelete: (id: string) => void
+  formatPrice: (price: number | null) => string | null
+}) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  if (!mounted) {
+    // Render without DndContext on the server to avoid hydration mismatch
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+          {title}
+        </h2>
+        <div className="space-y-2">
+          {items.map((item) => (
+            <SortableItem
+              key={item.id}
+              item={item}
+              venueId={venueId}
+              editingId={editingId}
+              isPending={isPending}
+              categories={categories}
+              editName={editName}
+              editDescription={editDescription}
+              editPrice={editPrice}
+              editCategoryId={editCategoryId}
+              editSlackChannel={editSlackChannel}
+              editImageUrl={editImageUrl}
+              editInternalNotes={editInternalNotes}
+              editInternalOnly={editInternalOnly}
+              editInternalCategory={editInternalCategory}
+              isUploading={isUploading}
+              setEditName={setEditName}
+              setEditDescription={setEditDescription}
+              setEditPrice={setEditPrice}
+              setEditCategoryId={setEditCategoryId}
+              setEditSlackChannel={setEditSlackChannel}
+              setEditImageUrl={setEditImageUrl}
+              setEditInternalNotes={setEditInternalNotes}
+              setEditInternalOnly={setEditInternalOnly}
+              setEditInternalCategory={setEditInternalCategory}
+              onImageUpload={onImageUpload}
+              onStartEdit={onStartEdit}
+              onCancelEdit={onCancelEdit}
+              onSaveEdit={onSaveEdit}
+              onDelete={onDelete}
+              formatPrice={formatPrice}
+            />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        {title}
+      </h2>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={(e) => onDragEnd(e, items)}
+      >
+        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {items.map((item) => (
+              <SortableItem
+                key={item.id}
+                item={item}
+                venueId={venueId}
+                editingId={editingId}
+                isPending={isPending}
+                categories={categories}
+                editName={editName}
+                editDescription={editDescription}
+                editPrice={editPrice}
+                editCategoryId={editCategoryId}
+                editSlackChannel={editSlackChannel}
+                editImageUrl={editImageUrl}
+                editInternalNotes={editInternalNotes}
+                editInternalOnly={editInternalOnly}
+                editInternalCategory={editInternalCategory}
+                isUploading={isUploading}
+                setEditName={setEditName}
+                setEditDescription={setEditDescription}
+                setEditPrice={setEditPrice}
+                setEditCategoryId={setEditCategoryId}
+                setEditSlackChannel={setEditSlackChannel}
+                setEditImageUrl={setEditImageUrl}
+                setEditInternalNotes={setEditInternalNotes}
+                setEditInternalOnly={setEditInternalOnly}
+                setEditInternalCategory={setEditInternalCategory}
+                onImageUpload={onImageUpload}
+                onStartEdit={onStartEdit}
+                onCancelEdit={onCancelEdit}
+                onSaveEdit={onSaveEdit}
+                onDelete={onDelete}
+                formatPrice={formatPrice}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </section>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────
+
+type RequestManagerProps = {
+  venue: Venue
+  requests: RequestWithModifiers[]
+  categories: Category[]
+  internalView?: boolean
+}
+
+export function RequestManager({ venue, requests, categories, internalView }: RequestManagerProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Add item form state
+  const [newName, setNewName] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [newPrice, setNewPrice] = useState('')
+  const [newCategoryId, setNewCategoryId] = useState<string>('')
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null)
+  const [newInternalOnly, setNewInternalOnly] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+
+  // Edit item form state
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState<string>('')
+  const [editSlackChannel, setEditSlackChannel] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null)
+  const [editInternalNotes, setEditInternalNotes] = useState('')
+  const [editInternalOnly, setEditInternalOnly] = useState(false)
+  const [editInternalCategory, setEditInternalCategory] = useState('')
+
+  // Add category state
+  const [newCategoryName, setNewCategoryName] = useState('')
+
+  const startEditing = (item: RequestWithModifiers) => {
+    setEditingId(item.id)
+    setEditName(item.name)
+    setEditDescription(item.description ?? '')
+    setEditPrice(item.price !== null ? item.price.toString() : '')
+    setEditCategoryId(item.category_id ?? '')
+    setEditSlackChannel(item.slack_channel ?? '')
+    setEditImageUrl(item.icon_url ?? null)
+    setEditInternalNotes(item.internal_notes ?? '')
+    setEditInternalOnly(item.internal_only ?? false)
+    setEditInternalCategory(item.internal_category ?? '')
+    setShowAddForm(false)
+    setShowAddCategory(false)
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingId || !editName.trim()) return
+
+    setError(null)
+    startTransition(async () => {
+      const result = await updateRequest(editingId, venue.id, {
+        name: editName.trim(),
+        description: editDescription.trim() || null,
+        price: editPrice.trim() ? parseFloat(editPrice.trim()) : null,
+        category_id: editCategoryId || null,
+        icon_url: editImageUrl,
+        internal_notes: editInternalNotes.trim() || null,
+        internal_only: editInternalOnly,
+        internal_category: editInternalCategory.trim() || null,
+        slack_channel: editSlackChannel.trim() || null,
+      })
+
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setEditingId(null)
+        router.refresh()
+      }
+    })
+  }
+
+  const handleCreateRequest = () => {
+    if (!newName.trim()) return
+
+    setError(null)
+    startTransition(async () => {
+      const maxOrder = requests.length > 0
+        ? Math.max(...requests.map((i) => i.sort_order))
+        : -1
+
+      const result = await createRequest({
+        venue_id: venue.id,
+        name: newName.trim(),
+        description: newDescription.trim() || null,
+        price: newPrice.trim() ? parseFloat(newPrice.trim()) : null,
+        category_id: newCategoryId || null,
+        icon_url: newImageUrl,
+        internal_notes: null,
+        internal_only: newInternalOnly,
+        internal_category: null,
+        sort_order: maxOrder + 1,
+      })
+
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setNewName('')
+        setNewDescription('')
+        setNewPrice('')
+        setNewCategoryId('')
+        setNewImageUrl(null)
+        setNewInternalOnly(false)
+        setShowAddForm(false)
+        router.refresh()
+      }
+    })
+  }
+
+  const handleImageUpload = async (
+    file: File,
+    setUrl: (url: string | null) => void
+  ) => {
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await uploadRequestImage(formData, venue.id)
+    setIsUploading(false)
+    if ('error' in result) {
+      setError(result.error)
+    } else {
+      setUrl(result.url)
+    }
+  }
+
+  const handleDelete = (itemId: string) => {
+    setError(null)
+    startTransition(async () => {
+      const result = await deleteRequest(itemId, venue.id)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        if (editingId === itemId) setEditingId(null)
+        router.refresh()
+      }
+    })
+  }
+
+  const handleDragEnd = (event: DragEndEvent, sectionItems: RequestWithModifiers[]) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = sectionItems.findIndex((i) => i.id === active.id)
+    const newIndex = sectionItems.findIndex((i) => i.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    // Build new sort_order assignments for all items in this section
+    const reordered = [...sectionItems]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    const updates = reordered.map((item, i) => ({
+      id: item.id,
+      sort_order: i,
+    }))
+
+    setError(null)
+    startTransition(async () => {
+      const result = await reorderRequests(venue.id, updates)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        router.refresh()
+      }
+    })
+  }
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) return
+
+    setError(null)
+    startTransition(async () => {
+      const result = await addCategory(venue.id, newCategoryName.trim())
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setNewCategoryName('')
+        setShowAddCategory(false)
+        router.refresh()
+      }
+    })
+  }
+
+  // Group items by category
+  // In internal view, group by internal_category string instead of menu category
+  const uncategorized = internalView
+    ? requests.filter((i) => !i.internal_category)
+    : requests.filter((i) => !i.category)
+
+  const grouped = new Map<string, { category: Category; items: RequestWithModifiers[] }>()
+  const internalGrouped = new Map<string, { label: string; items: RequestWithModifiers[] }>()
+
+  if (internalView) {
+    for (const item of requests) {
+      if (item.internal_category) {
+        const existing = internalGrouped.get(item.internal_category)
+        if (existing) {
+          existing.items.push(item)
+        } else {
+          internalGrouped.set(item.internal_category, { label: item.internal_category, items: [item] })
+        }
+      }
+    }
+  } else {
+    for (const item of requests) {
+      if (item.category) {
+        const existing = grouped.get(item.category.id)
+        if (existing) {
+          existing.items.push(item)
+        } else {
+          grouped.set(item.category.id, { category: item.category, items: [item] })
+        }
+      }
+    }
+  }
+
+  const sortedGroups = Array.from(grouped.values()).sort(
+    (a, b) => a.category.sort_order - b.category.sort_order
+  )
+  const sortedInternalGroups = Array.from(internalGrouped.values()).sort(
+    (a, b) => a.label.localeCompare(b.label)
+  )
+
+  const formatPrice = (price: number | null) => {
+    if (price === null) return null
+    return `$${price.toFixed(2)}`
+  }
+
+  const sharedProps = {
+    venueId: venue.id,
+    editingId,
+    isPending,
+    categories,
+    editName,
+    editDescription,
+    editPrice,
+    editCategoryId,
+    editSlackChannel,
+    editImageUrl,
+    editInternalNotes,
+    editInternalOnly,
+    editInternalCategory,
+    isUploading,
+    setEditName,
+    setEditDescription,
+    setEditPrice,
+    setEditCategoryId,
+    setEditSlackChannel,
+    setEditImageUrl,
+    setEditInternalNotes,
+    setEditInternalOnly,
+    setEditInternalCategory,
+    onImageUpload: handleImageUpload,
+    onStartEdit: startEditing,
+    onCancelEdit: cancelEditing,
+    onSaveEdit: handleSaveEdit,
+    onDelete: handleDelete,
+    formatPrice,
+  }
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setShowAddForm(!showAddForm); setShowAddCategory(false); setEditingId(null) }}
+          className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+        >
+          {showAddForm ? 'Cancel' : '+ Create Request'}
+        </button>
+        <button
+          onClick={() => { setShowAddCategory(!showAddCategory); setShowAddForm(false); setEditingId(null) }}
+          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          {showAddCategory ? 'Cancel' : '+ Add Category'}
+        </button>
+      </div>
+
+      {/* Add category form */}
+      {showAddCategory && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <h3 className="font-medium text-gray-900">New Category</h3>
+          <input
+            type="text"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="Category name"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <button
+            onClick={handleAddCategory}
+            disabled={isPending || !newCategoryName.trim()}
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            {isPending ? 'Adding...' : 'Add Category'}
+          </button>
+        </div>
+      )}
+
+      {/* Add item form */}
+      {showAddForm && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <h3 className="font-medium text-gray-900">New Request</h3>
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Item name *"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <input
+            type="text"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            placeholder="Description (optional)"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <input
+            type="number"
+            value={newPrice}
+            onChange={(e) => setNewPrice(e.target.value)}
+            placeholder="Price (optional)"
+            step="0.01"
+            min="0"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+          />
+          <select
+            value={newCategoryId}
+            onChange={(e) => setNewCategoryId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-gray-900 focus:outline-none"
+          >
+            <option value="">No category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          {/* Image */}
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-500">Image (optional)</label>
+            {newImageUrl && (
+              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                <img src={newImageUrl} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setNewImageUrl(null)}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-gray-900/70 text-white rounded-full text-xs flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {!newImageUrl && (
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleImageUpload(file, setNewImageUrl)
+                }}
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              />
+            )}
+            {isUploading && <p className="text-xs text-gray-400">Uploading...</p>}
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={newInternalOnly}
+              onChange={(e) => setNewInternalOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">Internal only</span>
+            <span className="text-xs text-gray-400">(hidden from customers)</span>
+          </label>
+          <button
+            onClick={handleCreateRequest}
+            disabled={isPending || !newName.trim()}
+            className="hover-btn px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            {isPending ? 'Creating...' : 'Create Request'}
+          </button>
+        </div>
+      )}
+
+      {/* Item list */}
+      {requests.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          {internalView ? 'No internal items yet.' : 'No requests yet. Create your first one above.'}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {uncategorized.length > 0 && (
+            <SortableSection
+              title="Uncategorized"
+              items={uncategorized}
+              onDragEnd={handleDragEnd}
+              {...sharedProps}
+            />
+          )}
+
+          {internalView
+            ? sortedInternalGroups.map(({ label, items }) => (
+                <SortableSection
+                  key={label}
+                  title={label}
+                  items={items}
+                  onDragEnd={handleDragEnd}
+                  {...sharedProps}
+                />
+              ))
+            : sortedGroups.map(({ category, items }) => (
+                <SortableSection
+                  key={category.id}
+                  title={category.name}
+                  items={items}
+                  onDragEnd={handleDragEnd}
+                  {...sharedProps}
+                />
+              ))}
+        </div>
+      )}
+    </div>
+  )
+}
