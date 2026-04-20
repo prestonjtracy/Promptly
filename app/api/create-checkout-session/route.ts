@@ -61,6 +61,20 @@ export async function POST(req: Request) {
     return Response.json({ error: PAYMENTS_NOT_CONFIGURED }, { status: 400 })
   }
 
+  // Tenancy check: locationId comes from the client and is stored in session
+  // metadata that the success page trusts. Verify it belongs to this venue
+  // before we proceed so we can't be tricked into routing paid orders to
+  // another venue's cart/station.
+  const { data: locationRow } = await supabase
+    .from('locations')
+    .select('venue_id')
+    .eq('id', body.locationId)
+    .maybeSingle()
+
+  if (!locationRow || (locationRow as { venue_id: string }).venue_id !== venue.id) {
+    return Response.json({ error: 'Invalid location for this venue.' }, { status: 400 })
+  }
+
   // Recompute line-item prices from the DB — never trust client-supplied
   // amounts. The client only sends menu_item_id + modifier metadata.
   const menuItemIds = Array.from(new Set(body.cart.map((c) => c.menu_item_id)))

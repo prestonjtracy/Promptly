@@ -155,6 +155,34 @@ export async function submitOrder(
 
     const supabase = await createClient()
 
+    // Tenancy check: the client supplies venue_id and location_id, so we must
+    // verify the location actually belongs to the claimed venue before writing.
+    // Without this, a customer on venue A could submit orders against venue B.
+    const { data: locationRow } = await supabase
+      .from('locations')
+      .select('venue_id')
+      .eq('id', data.location_id)
+      .maybeSingle()
+
+    if (!locationRow || (locationRow as { venue_id: string }).venue_id !== data.venue_id) {
+      return { error: 'Invalid location for this venue.' }
+    }
+
+    const itemIds = data.items.map((i) => i.menu_item_id)
+    const { data: menuRows } = await supabase
+      .from('menu_items')
+      .select('id, venue_id')
+      .in('id', itemIds)
+
+    const venueItems = (menuRows ?? []) as { id: string; venue_id: string }[]
+    const allBelong =
+      venueItems.length === itemIds.length &&
+      venueItems.every((m) => m.venue_id === data.venue_id)
+
+    if (!allBelong) {
+      return { error: 'One or more items are not available at this venue.' }
+    }
+
     // Idempotency: if this Stripe session already produced an order, return it
     // without re-inserting or re-notifying Slack. Guards against success-page
     // refreshes and concurrent tabs.

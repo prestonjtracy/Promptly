@@ -1,7 +1,9 @@
 'use server'
 
+import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const COOKIE_NAME = 'promptly_admin_venue'
 const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
@@ -9,24 +11,33 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
 // ── Auth ─────────────────────────────────────────────────────
 
 export async function loginWithPasscode(slug: string, passcode: string) {
-  const supabase = await createClient()
+  // Service-role client: passcode_hash is REVOKEd from anon/authenticated
+  // at the DB level (migration 00012) so a browser-visible key can never
+  // read it. This is the only path that should read the column.
+  const service = createServiceClient()
 
-  const { data: venue } = await supabase
+  const { data: venue } = await service
     .from('venues')
-    .select('id, passcode')
+    .select('id, passcode_hash')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
-  if (!venue) {
-    return { error: 'Venue not found.' }
-  }
+  const venueRow = venue as { id: string; passcode_hash: string } | null
 
-  if (venue.passcode !== passcode) {
-    return { error: 'Incorrect passcode.' }
+  // Run bcrypt.compare even when the venue is missing, against a throwaway
+  // hash, so the response time doesn't distinguish "no such slug" from
+  // "wrong passcode". Small but free hardening.
+  const hashToCompare =
+    venueRow?.passcode_hash ??
+    '$2a$10$CwTycUXWue0Thq9StjUM0uJ8qfXaobd9xVoSt8CgE2wbqg.PkbK6e'
+  const ok = await bcrypt.compare(passcode, hashToCompare)
+
+  if (!venueRow || !ok) {
+    return { error: 'Incorrect slug or passcode.' }
   }
 
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_NAME, venue.id, {
+  cookieStore.set(COOKIE_NAME, venueRow.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -34,7 +45,7 @@ export async function loginWithPasscode(slug: string, passcode: string) {
     path: '/',
   })
 
-  return { success: true, venueId: venue.id }
+  return { success: true, venueId: venueRow.id }
 }
 
 export async function logout() {
