@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
-import type { Venue, RequestWithModifiers, Category } from '@/lib/supabase/types'
+import type { Venue, RequestWithModifiers, Category, VenueTab } from '@/lib/supabase/types'
 import { hasFeature } from '@/lib/features'
 import { logout } from '@/app/actions/admin'
 import { RequestManager } from './request-manager'
@@ -15,6 +15,7 @@ type AdminDashboardProps = {
   venue: Venue
   requests: RequestWithModifiers[]
   categories: Category[]
+  tabs: VenueTab[]
   activeTab: string
   analyticsData: Record<DateRange, AnalyticsData> | null
 }
@@ -23,6 +24,7 @@ export function AdminDashboard({
   venue,
   requests,
   categories,
+  tabs,
   activeTab,
   analyticsData,
 }: AdminDashboardProps) {
@@ -120,7 +122,7 @@ export function AdminDashboard({
             internalView
           />
         ) : activeTab === 'workspace' ? (
-          <WorkspaceSettings venue={venue} />
+          <WorkspaceSettings venue={venue} tabs={tabs} />
         ) : (
           <RequestManager
             venue={venue}

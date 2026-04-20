@@ -478,3 +478,148 @@ export async function deleteModifierOption(
   if (error) return { error: 'Failed to delete option.' }
   return { success: true }
 }
+
+// ── Custom Tabs (feature: custom_tabs) ───────────────────────
+
+/**
+ * Idempotent seed for a venue that just had custom_tabs enabled. Creates a
+ * default "Menu" Requests tab and reparents existing menu_items to it so the
+ * customer page doesn't go blank the moment the flag flips. Safe to call on
+ * every admin load — the tab-count check is the guard.
+ */
+export async function ensureDefaultTab(venueId: string) {
+  const adminVenueId = await getAdminVenueId()
+  if (!adminVenueId || adminVenueId !== venueId) return
+
+  const supabase = await createClient()
+
+  const { count } = await supabase
+    .from('venue_tabs')
+    .select('*', { count: 'exact', head: true })
+    .eq('venue_id', venueId)
+
+  if ((count ?? 0) > 0) return
+
+  const { data: created } = await supabase
+    .from('venue_tabs')
+    .insert({ venue_id: venueId, name: 'Menu', type: 'requests', sort_order: 0 })
+    .select('id')
+    .single()
+
+  const tabId = (created as { id: string } | null)?.id
+  if (!tabId) return
+
+  await supabase
+    .from('menu_items')
+    .update({ tab_id: tabId })
+    .eq('venue_id', venueId)
+    .is('tab_id', null)
+}
+
+export async function createTab(
+  venueId: string,
+  data: { name: string; type: 'requests' | 'info' }
+) {
+  const adminVenueId = await getAdminVenueId()
+  if (!adminVenueId || adminVenueId !== venueId) {
+    return { error: 'Unauthorized.' }
+  }
+  const name = data.name.trim()
+  if (!name) return { error: 'Tab name is required.' }
+
+  const supabase = await createClient()
+
+  const { data: existing } = await supabase
+    .from('venue_tabs')
+    .select('sort_order')
+    .eq('venue_id', venueId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+
+  const nextOrder =
+    existing && existing.length > 0
+      ? (existing[0] as { sort_order: number }).sort_order + 1
+      : 0
+
+  const { data: row, error } = await supabase
+    .from('venue_tabs')
+    .insert({
+      venue_id: venueId,
+      name,
+      type: data.type,
+      config: {},
+      sort_order: nextOrder,
+    })
+    .select('id')
+    .single()
+
+  if (error || !row) return { error: 'Failed to create tab.' }
+  return { success: true, tabId: (row as { id: string }).id }
+}
+
+export async function updateTab(
+  tabId: string,
+  venueId: string,
+  data: { name: string; config?: Record<string, unknown> }
+) {
+  const adminVenueId = await getAdminVenueId()
+  if (!adminVenueId || adminVenueId !== venueId) {
+    return { error: 'Unauthorized.' }
+  }
+  const name = data.name.trim()
+  if (!name) return { error: 'Tab name is required.' }
+
+  const supabase = await createClient()
+
+  const updatePayload: Record<string, unknown> = { name }
+  if (data.config !== undefined) updatePayload.config = data.config
+
+  const { error } = await supabase
+    .from('venue_tabs')
+    .update(updatePayload)
+    .eq('id', tabId)
+    .eq('venue_id', venueId)
+
+  if (error) return { error: 'Failed to update tab.' }
+  return { success: true }
+}
+
+export async function deleteTab(tabId: string, venueId: string) {
+  const adminVenueId = await getAdminVenueId()
+  if (!adminVenueId || adminVenueId !== venueId) {
+    return { error: 'Unauthorized.' }
+  }
+
+  const supabase = await createClient()
+
+  // ON DELETE SET NULL on menu_items.tab_id means items attached to this tab
+  // are not deleted — they fall back to the customer-page default bucket.
+  const { error } = await supabase
+    .from('venue_tabs')
+    .delete()
+    .eq('id', tabId)
+    .eq('venue_id', venueId)
+
+  if (error) return { error: 'Failed to delete tab.' }
+  return { success: true }
+}
+
+export async function reorderTabs(venueId: string, tabIds: string[]) {
+  const adminVenueId = await getAdminVenueId()
+  if (!adminVenueId || adminVenueId !== venueId) {
+    return { error: 'Unauthorized.' }
+  }
+
+  const supabase = await createClient()
+
+  for (let i = 0; i < tabIds.length; i++) {
+    const { error } = await supabase
+      .from('venue_tabs')
+      .update({ sort_order: i })
+      .eq('id', tabIds[i])
+      .eq('venue_id', venueId)
+    if (error) return { error: 'Failed to reorder tabs.' }
+  }
+
+  return { success: true }
+}
