@@ -15,7 +15,6 @@ export type Venue = {
   allow_notes: boolean
   delivery_location_placeholder: string | null
   default_slack_channel: string | null
-  passcode: string
   features: VenueFeatures
   plan_type: PlanType
   payments_enabled: boolean
@@ -27,9 +26,11 @@ export type Venue = {
   updated_at: string
 }
 
-/** Columns safe to SELECT with anon/authenticated roles (excludes stripe_secret_key). */
+/** Columns safe to SELECT with anon/authenticated roles. Excludes stripe_secret_key
+ *  and passcode/passcode_hash — those are REVOKEd at the DB level and read only
+ *  through the service-role client inside trusted server actions. */
 export const VENUE_PUBLIC_COLUMNS =
-  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, passcode, features, plan_type, payments_enabled, created_at, updated_at'
+  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, created_at, updated_at'
 
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {
