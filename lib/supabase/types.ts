@@ -35,7 +35,26 @@ export const VENUE_PUBLIC_COLUMNS =
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {
   analytics?: boolean
+  custom_tabs?: boolean
   // Future: advanced_routing, premium_integrations, custom_workflows
+}
+
+/** Tab types. Phase 1 uses 'requests' and 'info'; 'internal' and 'form'
+ *  are reserved for later phases but accepted by the DB check constraint. */
+export type TabType = 'requests' | 'info' | 'internal' | 'form'
+
+/** Info tab payload: a string of body text rendered on the customer page. */
+export type InfoTabConfig = { body?: string }
+
+export type VenueTab = {
+  id: string
+  venue_id: string
+  name: string
+  type: TabType
+  config: InfoTabConfig | Record<string, never>
+  sort_order: number
+  created_at: string
+  updated_at: string
 }
 
 export type Location = {
@@ -60,6 +79,7 @@ export type MenuItem = {
   id: string
   venue_id: string
   category_id: string | null
+  tab_id: string | null
   name: string
   description: string | null
   price: number | null

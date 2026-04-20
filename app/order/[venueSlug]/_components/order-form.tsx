@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useCallback } from 'react'
+import { useMemo, useState, useTransition, useCallback } from 'react'
 import type {
   Venue,
   Location,
@@ -8,6 +8,8 @@ import type {
   RequestWithModifiers,
   CartEntry,
   SelectedModifier,
+  VenueTab,
+  InfoTabConfig,
 } from '@/lib/supabase/types'
 import { submitOrder } from '@/app/actions/submit-order'
 import { canUsePayments } from '@/lib/features'
@@ -39,9 +41,22 @@ type OrderFormProps = {
   venue: Venue
   location: Location
   menuItems: RequestWithModifiers[]
+  /** When present and non-empty, customer navigation uses these tabs instead
+   *  of the legacy "all categories stacked" rendering. Already filtered to
+   *  exclude internal-type tabs server-side. */
+  tabs?: VenueTab[]
 }
 
-export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
+export function OrderForm({ venue, location, menuItems, tabs }: OrderFormProps) {
+  const customTabs = tabs ?? []
+  const useCustomTabs = customTabs.length > 0
+  const [activeTabId, setActiveTabId] = useState<string | null>(
+    useCustomTabs ? customTabs[0].id : null,
+  )
+  const activeTab = useMemo(
+    () => (activeTabId ? customTabs.find((t) => t.id === activeTabId) ?? null : null),
+    [activeTabId, customTabs],
+  )
   const [cart, setCart] = useState<CartEntry[]>([])
   const [modalItem, setModalItem] = useState<RequestWithModifiers | null>(null)
   const [fulfillment, setFulfillment] = useState<FulfillmentType>(
@@ -236,6 +251,29 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
     )
   }
 
+  // ── Filter menu items by active tab (if custom tabs are on) ────────
+  // For a Requests tab: show items explicitly assigned to it. Items with a
+  // null tab_id fall through to the FIRST Requests tab as a safety net so
+  // new admin-created items aren't silently invisible before the admin
+  // reassigns them. For an Info tab: no items (body renders instead).
+  const firstRequestsTabId =
+    useCustomTabs ? customTabs.find((t) => t.type === 'requests')?.id ?? null : null
+
+  const visibleItems: RequestWithModifiers[] = (() => {
+    if (!useCustomTabs || !activeTab) return menuItems
+    if (activeTab.type !== 'requests') return []
+    return menuItems.filter((item) => {
+      if (item.tab_id === activeTab.id) return true
+      if (item.tab_id === null && activeTab.id === firstRequestsTabId) return true
+      return false
+    })
+  })()
+
+  const activeInfoBody =
+    useCustomTabs && activeTab?.type === 'info'
+      ? ((activeTab.config as InfoTabConfig)?.body ?? '')
+      : null
+
   // ── Group menu items by category ───────────────────────────
   const uncategorized: RequestWithModifiers[] = []
   const categoryMap = new Map<
@@ -243,7 +281,7 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
     { name: string; sortOrder: number; items: RequestWithModifiers[] }
   >()
 
-  for (const item of menuItems) {
+  for (const item of visibleItems) {
     if (item.category) {
       const existing = categoryMap.get(item.category.id)
       if (existing) {
@@ -311,111 +349,141 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-8">
-        {/* Menu items */}
-        {menuItems.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              Nothing available right now.
-            </p>
+      {/* Tab nav — only when the venue has custom tabs configured */}
+      {useCustomTabs && (
+        <nav
+          aria-label="Sections"
+          className="sticky top-[72px] z-[5] bg-gray-50 border-b border-gray-200"
+        >
+          <div className="max-w-lg mx-auto flex overflow-x-auto px-2">
+            {customTabs.map((t) => {
+              const isActive = t.id === activeTabId
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTabId(t.id)}
+                  className={`shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    isActive
+                      ? 'border-[var(--venue-accent)] text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              )
+            })}
           </div>
-        ) : (
-          <>
-            {/* Uncategorized items first */}
-            {uncategorized.length > 0 && (
-              <section className="space-y-3">
-                {uncategorized.map(renderMenuItemCard)}
-              </section>
-            )}
+        </nav>
+      )}
 
-            {/* Categorized items */}
-            {sortedCategories.map((cat) => (
-              <section key={cat.name} className="space-y-3">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">
-                  {cat.name}
-                </h2>
-                {cat.items.map(renderMenuItemCard)}
-              </section>
-            ))}
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-8">
+        {/* Info tab body — rendered instead of a menu when the active tab
+            is of type 'info'. The shared fulfillment/cart UI still appears
+            below so the customer can always submit from any tab. */}
+        {activeInfoBody !== null && (
+          <section className="bg-white border border-gray-200 rounded-xl p-5 whitespace-pre-wrap text-gray-800 leading-relaxed">
+            {activeInfoBody.trim() ? activeInfoBody : 'No information provided yet.'}
+          </section>
+        )}
 
-            {/* ── Below menu: fulfillment, delivery location, customer ID, notes ── */}
-            <div className="border-t border-gray-100 pt-8 space-y-5">
-              {/* Fulfillment toggle */}
-              <FulfillmentToggle
-                value={fulfillment}
-                onChange={setFulfillment}
-                allowPickup={venue.allow_pickup}
-                allowDelivery={venue.allow_delivery}
-              />
-
-              {/* Delivery location — shown when delivery is selected */}
-              {fulfillment === 'delivery' && venue.allow_delivery && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="delivery-location"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Delivery Location
-                    <span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    id="delivery-location"
-                    type="text"
-                    value={deliveryLocation}
-                    onChange={(e) => setDeliveryLocation(e.target.value)}
-                    placeholder={venue.delivery_location_placeholder || `e.g. "Hole 7", "Poolside chair 3", "Room 412"`}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors"
-                  />
-                </div>
-              )}
-
-              {/* Customer ID */}
-              {venue.customer_id_label && (
-                <CustomerIdInput
-                  label={venue.customer_id_label}
-                  required={venue.customer_id_required}
-                  value={customerId}
-                  onChange={setCustomerId}
-                />
-              )}
-
-              {/* Notes */}
-              {venue.allow_notes && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="notes"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any special requests..."
-                    rows={2}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors resize-none"
-                  />
-                </div>
-              )}
+        {/* Menu items — rendered unless the active tab is an Info tab */}
+        {activeInfoBody === null &&
+          (visibleItems.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Nothing available right now.</p>
             </div>
+          ) : (
+            <>
+              {uncategorized.length > 0 && (
+                <section className="space-y-3">
+                  {uncategorized.map(renderMenuItemCard)}
+                </section>
+              )}
 
-            {/* Order summary */}
-            {totalItems > 0 && (
-              <OrderSummary
-                cart={cart}
-                menuItems={menuItems}
-                fulfillment={fulfillment}
-                deliveryLocation={
-                  fulfillment === 'delivery' ? deliveryLocation : ''
-                }
-                customerIdLabel={venue.customer_id_label}
-                customerIdValue={customerId}
-                notes={notes}
-                onEntryQuantityChange={handleCartEntryQuantityChange}
+              {sortedCategories.map((cat) => (
+                <section key={cat.name} className="space-y-3">
+                  <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">
+                    {cat.name}
+                  </h2>
+                  {cat.items.map(renderMenuItemCard)}
+                </section>
+              ))}
+            </>
+          ))}
+
+        {/* ── Fulfillment, customer ID, notes — always visible so the
+            customer can submit the cart regardless of which tab is active ── */}
+        <div className="border-t border-gray-100 pt-8 space-y-5">
+          <FulfillmentToggle
+            value={fulfillment}
+            onChange={setFulfillment}
+            allowPickup={venue.allow_pickup}
+            allowDelivery={venue.allow_delivery}
+          />
+
+          {fulfillment === 'delivery' && venue.allow_delivery && (
+            <div className="space-y-2">
+              <label
+                htmlFor="delivery-location"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Delivery Location
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <input
+                id="delivery-location"
+                type="text"
+                value={deliveryLocation}
+                onChange={(e) => setDeliveryLocation(e.target.value)}
+                placeholder={venue.delivery_location_placeholder || `e.g. "Hole 7", "Poolside chair 3", "Room 412"`}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors"
               />
-            )}
-          </>
+            </div>
+          )}
+
+          {venue.customer_id_label && (
+            <CustomerIdInput
+              label={venue.customer_id_label}
+              required={venue.customer_id_required}
+              value={customerId}
+              onChange={setCustomerId}
+            />
+          )}
+
+          {venue.allow_notes && (
+            <div className="space-y-2">
+              <label
+                htmlFor="notes"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Notes (optional)
+              </label>
+              <textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special requests..."
+                rows={2}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--venue-accent)] focus:outline-none transition-colors resize-none"
+              />
+            </div>
+          )}
+        </div>
+
+        {totalItems > 0 && (
+          <OrderSummary
+            cart={cart}
+            menuItems={menuItems}
+            fulfillment={fulfillment}
+            deliveryLocation={
+              fulfillment === 'delivery' ? deliveryLocation : ''
+            }
+            customerIdLabel={venue.customer_id_label}
+            customerIdValue={customerId}
+            notes={notes}
+            onEntryQuantityChange={handleCartEntryQuantityChange}
+          />
         )}
 
         {/* Error */}

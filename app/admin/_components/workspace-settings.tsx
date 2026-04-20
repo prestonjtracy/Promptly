@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Venue } from '@/lib/supabase/types'
-import { canUsePayments } from '@/lib/features'
+import type { Venue, VenueTab } from '@/lib/supabase/types'
+import { canUsePayments, hasFeature } from '@/lib/features'
 import { updateWorkspaceSettings } from '@/app/actions/admin'
+import { TabsManager } from './tabs-manager'
 
 type WorkspaceSettingsProps = {
   venue: Venue
+  tabs: VenueTab[]
 }
 
 function Toggle({
@@ -48,7 +50,8 @@ function Toggle({
   )
 }
 
-export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
+export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
+  const customTabsOn = hasFeature(venue, 'custom_tabs')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -130,6 +133,8 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
 
   return (
     <div className="space-y-6">
+      {customTabsOn && <TabsManager venueId={venue.id} tabs={tabs} />}
+
       {/* Delivery & Pickup */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
         <h2 className="font-semibold text-gray-900">Delivery & Pickup</h2>

@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
-import { getAdminVenueId } from '@/app/actions/admin'
+import { ensureDefaultTab, getAdminVenueId } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasFeature } from '@/lib/features'
 import { AdminDashboard } from './_components/admin-dashboard'
-import { VENUE_PUBLIC_COLUMNS, type RequestWithModifiers, type Category, type Venue } from '@/lib/supabase/types'
+import { VENUE_PUBLIC_COLUMNS, type RequestWithModifiers, type Category, type Venue, type VenueTab } from '@/lib/supabase/types'
 import type { AnalyticsData } from './_components/analytics'
 
 export const metadata = {
@@ -138,6 +138,18 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
     .eq('venue_id', venueId)
     .order('sort_order')
 
+  // When the custom_tabs feature just flipped on, seed a default Menu tab
+  // and migrate existing items over. Idempotent — no-op if tabs already exist.
+  if (hasFeature(typedVenue, 'custom_tabs')) {
+    await ensureDefaultTab(venueId)
+  }
+
+  const { data: venueTabs } = await supabase
+    .from('venue_tabs')
+    .select('*')
+    .eq('venue_id', venueId)
+    .order('sort_order')
+
   const tab = (searchParams?.tab as string) ?? 'requests'
 
   // Compute analytics data if the feature is enabled
@@ -177,6 +189,7 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
       venue={typedVenue}
       requests={(menuItems ?? []) as unknown as RequestWithModifiers[]}
       categories={(categories ?? []) as unknown as Category[]}
+      tabs={(venueTabs ?? []) as unknown as VenueTab[]}
       activeTab={tab}
       analyticsData={analyticsData}
     />
