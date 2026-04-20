@@ -18,6 +18,7 @@ export type Venue = {
   features: VenueFeatures
   plan_type: PlanType
   payments_enabled: boolean
+  tier: string
   // Computed server-side. The raw stripe_secret_key column is never
   // loaded into this type — the REVOKE at the DB level enforces that
   // and a service-role client reads the key only inside trusted routes.
@@ -30,7 +31,7 @@ export type Venue = {
  *  and passcode/passcode_hash — those are REVOKEd at the DB level and read only
  *  through the service-role client inside trusted server actions. */
 export const VENUE_PUBLIC_COLUMNS =
-  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, created_at, updated_at'
+  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, tier, created_at, updated_at'
 
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {
