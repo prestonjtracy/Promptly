@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Venue } from '@/lib/supabase/types'
+import { canUsePayments } from '@/lib/features'
 import { updateWorkspaceSettings } from '@/app/actions/admin'
 
 type WorkspaceSettingsProps = {
@@ -76,6 +77,13 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
   const [accentColor, setAccentColor] = useState(venue.accent_color || '#2563eb')
   const [logoUrl, setLogoUrl] = useState(venue.logo_url ?? '')
 
+  // Payments (only meaningful when canUsePayments(venue) is true — otherwise
+  // state is initialized but the section never renders and the values never
+  // reach the server action).
+  const paymentsVisible = canUsePayments(venue)
+  const [paymentsEnabled, setPaymentsEnabled] = useState(venue.payments_enabled)
+  const [stripeKeyInput, setStripeKeyInput] = useState('')
+
   const handleSave = () => {
     setError(null)
     setSaved(false)
@@ -99,12 +107,21 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
         primary_color: primaryColor,
         accent_color: accentColor,
         logo_url: logoUrl.trim() || null,
+        ...(paymentsVisible
+          ? {
+              payments_enabled: paymentsEnabled,
+              ...(stripeKeyInput.trim() ? { stripe_secret_key: stripeKeyInput.trim() } : {}),
+            }
+          : {}),
       })
 
       if (result.error) {
         setError(result.error)
       } else {
         setSaved(true)
+        // Clear the key input after a successful save so the "Key saved"
+        // badge reappears and nothing lingers in the DOM.
+        setStripeKeyInput('')
         router.refresh()
         setTimeout(() => setSaved(false), 2000)
       }
@@ -298,6 +315,51 @@ export function WorkspaceSettings({ venue }: WorkspaceSettingsProps) {
           <span className="text-sm text-white font-medium">Preview</span>
         </div>
       </div>
+
+      {/* Payments — full_commerce plan only. Completely hidden on pos_only. */}
+      {paymentsVisible && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+          <h2 className="font-semibold text-gray-900">Payments</h2>
+          <p className="text-sm text-gray-500">
+            Connect your own Stripe account to accept payments at checkout.
+            Promptly never touches the funds — charges go directly to your Stripe balance.
+          </p>
+          <Toggle
+            label="Enable Payments"
+            description="Customers will be redirected to Stripe Checkout on submit"
+            checked={paymentsEnabled}
+            onChange={setPaymentsEnabled}
+          />
+          <div>
+            <label
+              htmlFor="stripe-key"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Stripe Secret Key
+            </label>
+            <input
+              id="stripe-key"
+              type="password"
+              autoComplete="off"
+              value={stripeKeyInput}
+              onChange={(e) => setStripeKeyInput(e.target.value)}
+              placeholder={venue.hasStripeKey ? '••••••••••••••••' : 'sk_live_...'}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none font-mono"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              {venue.hasStripeKey && !stripeKeyInput && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-xs text-green-700 font-medium">
+                  <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  Key saved
+                </span>
+              )}
+              <p className="text-xs text-gray-500">
+                Leave blank to keep existing key. Paste a new key to replace.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Save */}
       {error && (

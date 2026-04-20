@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Venue, Location, RequestWithModifiers } from '@/lib/supabase/types'
+import { VENUE_PUBLIC_COLUMNS, type Venue, type Location, type RequestWithModifiers } from '@/lib/supabase/types'
 import { OrderForm } from './_components/order-form'
 
 export async function generateMetadata(props: {
@@ -32,9 +32,11 @@ export default async function OrderPage(props: {
 
   const supabase = await createClient()
 
+  // Explicit column list — stripe_secret_key is REVOKEd from anon and must
+  // not cross into client components anyway.
   const { data: venue, error: venueError } = await supabase
     .from('venues')
-    .select('*')
+    .select(VENUE_PUBLIC_COLUMNS)
     .eq('slug', venueSlug)
     .single()
 
@@ -43,7 +45,13 @@ export default async function OrderPage(props: {
     notFound()
   }
 
-  const typedVenue = venue as unknown as Venue
+  // Customer page doesn't need to know whether a key is saved — it only
+  // branches on payments_enabled + plan_type. The route handler validates
+  // key presence at checkout time.
+  const typedVenue: Venue = {
+    ...(venue as unknown as Omit<Venue, 'hasStripeKey'>),
+    hasStripeKey: false,
+  }
 
   let location: Location | null = null
   if (cartParam) {

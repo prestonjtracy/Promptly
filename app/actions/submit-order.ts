@@ -15,6 +15,10 @@ type SubmitOrderInput = {
     quantity: number
     selected_modifiers: SelectedModifier[]
   }[]
+  // When present, the order row is keyed to a paid Stripe Checkout session.
+  // Re-submitting with the same id returns the existing order_number instead
+  // of creating duplicates (refresh-safe).
+  stripe_session_id?: string
 }
 
 type SubmitOrderResult =
@@ -151,6 +155,24 @@ export async function submitOrder(
 
     const supabase = await createClient()
 
+    // Idempotency: if this Stripe session already produced an order, return it
+    // without re-inserting or re-notifying Slack. Guards against success-page
+    // refreshes and concurrent tabs.
+    if (data.stripe_session_id) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('id, order_number')
+        .eq('stripe_session_id', data.stripe_session_id)
+        .maybeSingle()
+      if (existing) {
+        return {
+          success: true,
+          orderId: existing.id,
+          orderNumber: existing.order_number,
+        }
+      }
+    }
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -160,6 +182,7 @@ export async function submitOrder(
         delivery_location: data.delivery_location,
         customer_id_value: data.customer_id_value,
         notes: data.notes,
+        stripe_session_id: data.stripe_session_id ?? null,
       })
       .select('id, order_number')
       .single()

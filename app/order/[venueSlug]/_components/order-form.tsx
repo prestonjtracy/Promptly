@@ -10,6 +10,7 @@ import type {
   SelectedModifier,
 } from '@/lib/supabase/types'
 import { submitOrder } from '@/app/actions/submit-order'
+import { canUsePayments } from '@/lib/features'
 import { MenuItemCard } from './menu-item-card'
 import { ModifierModal } from './modifier-modal'
 import { FulfillmentToggle } from './fulfillment-toggle'
@@ -155,6 +156,32 @@ export function OrderForm({ venue, location, menuItems }: OrderFormProps) {
           quantity: entry.quantity,
           selected_modifiers: entry.selectedModifiers,
         }))
+
+        // Paid-checkout branch: redirect to Stripe-hosted checkout. On return,
+        // /order/[venueSlug]/success persists the order and fires Slack.
+        if (venue.payments_enabled && canUsePayments(venue)) {
+          const res = await fetch('/api/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              venueSlug: venue.slug,
+              locationId: location.id,
+              cart: items,
+              fulfillment,
+              deliveryLocation:
+                fulfillment === 'delivery' ? deliveryLocation.trim() || null : null,
+              customerIdValue: customerId.trim() || null,
+              notes: venue.allow_notes ? notes.trim() || null : null,
+            }),
+          })
+          const data = (await res.json()) as { url?: string; error?: string }
+          if (!res.ok || data.error || !data.url) {
+            setError(data.error ?? 'Unable to start checkout. Please try again.')
+            return
+          }
+          window.location.href = data.url
+          return
+        }
 
         const result = await submitOrder({
           venue_id: venue.id,

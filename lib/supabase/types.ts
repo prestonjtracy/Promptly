@@ -1,3 +1,5 @@
+export type PlanType = 'pos_only' | 'full_commerce'
+
 export type Venue = {
   id: string
   name: string
@@ -15,9 +17,19 @@ export type Venue = {
   default_slack_channel: string | null
   passcode: string
   features: VenueFeatures
+  plan_type: PlanType
+  payments_enabled: boolean
+  // Computed server-side. The raw stripe_secret_key column is never
+  // loaded into this type — the REVOKE at the DB level enforces that
+  // and a service-role client reads the key only inside trusted routes.
+  hasStripeKey: boolean
   created_at: string
   updated_at: string
 }
+
+/** Columns safe to SELECT with anon/authenticated roles (excludes stripe_secret_key). */
+export const VENUE_PUBLIC_COLUMNS =
+  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, passcode, features, plan_type, payments_enabled, created_at, updated_at'
 
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {
@@ -80,6 +92,7 @@ export type Order = {
   customer_id_value: string | null
   status: OrderStatus
   notes: string | null
+  stripe_session_id: string | null
   created_at: string
   updated_at: string
 }

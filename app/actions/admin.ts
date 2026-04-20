@@ -184,6 +184,8 @@ export async function updateWorkspaceSettings(
     primary_color: string
     accent_color: string
     logo_url: string | null
+    payments_enabled?: boolean
+    stripe_secret_key?: string
   }
 ) {
   const adminVenueId = await getAdminVenueId()
@@ -196,22 +198,48 @@ export async function updateWorkspaceSettings(
     return { error: 'At least one fulfillment option (pickup or delivery) must be enabled.' }
   }
 
+  const paymentsTouched =
+    typeof settings.payments_enabled === 'boolean' ||
+    (typeof settings.stripe_secret_key === 'string' && settings.stripe_secret_key.length > 0)
+
+  // Plan-gate payment fields: pos_only venues must never be able to set them.
+  if (paymentsTouched) {
+    const supabase = await createClient()
+    const { data: planRow } = await supabase
+      .from('venues')
+      .select('plan_type')
+      .eq('id', venueId)
+      .single()
+    if ((planRow as { plan_type: string } | null)?.plan_type !== 'full_commerce') {
+      return { error: 'Payments not available on current plan.' }
+    }
+  }
+
   const supabase = await createClient()
+
+  const updatePayload: Record<string, unknown> = {
+    allow_pickup: settings.allow_pickup,
+    allow_delivery: settings.allow_delivery,
+    customer_id_label: settings.customer_id_label || null,
+    customer_id_required: settings.customer_id_label ? settings.customer_id_required : false,
+    allow_notes: settings.allow_notes,
+    delivery_location_placeholder: settings.delivery_location_placeholder || null,
+    default_slack_channel: settings.default_slack_channel || null,
+    primary_color: settings.primary_color,
+    accent_color: settings.accent_color,
+    logo_url: settings.logo_url,
+  }
+
+  if (typeof settings.payments_enabled === 'boolean') {
+    updatePayload.payments_enabled = settings.payments_enabled
+  }
+  if (typeof settings.stripe_secret_key === 'string' && settings.stripe_secret_key.length > 0) {
+    updatePayload.stripe_secret_key = settings.stripe_secret_key
+  }
 
   const { error } = await supabase
     .from('venues')
-    .update({
-      allow_pickup: settings.allow_pickup,
-      allow_delivery: settings.allow_delivery,
-      customer_id_label: settings.customer_id_label || null,
-      customer_id_required: settings.customer_id_label ? settings.customer_id_required : false,
-      allow_notes: settings.allow_notes,
-      delivery_location_placeholder: settings.delivery_location_placeholder || null,
-      default_slack_channel: settings.default_slack_channel || null,
-      primary_color: settings.primary_color,
-      accent_color: settings.accent_color,
-      logo_url: settings.logo_url,
-    })
+    .update(updatePayload)
     .eq('id', venueId)
 
   if (error) return { error: 'Failed to save workspace settings.' }

@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation'
 import { getAdminVenueId } from '@/app/actions/admin'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { hasFeature } from '@/lib/features'
 import { AdminDashboard } from './_components/admin-dashboard'
-import type { RequestWithModifiers, Category, Venue } from '@/lib/supabase/types'
+import { VENUE_PUBLIC_COLUMNS, type RequestWithModifiers, type Category, type Venue } from '@/lib/supabase/types'
 import type { AnalyticsData } from './_components/analytics'
 
 export const metadata = {
@@ -91,9 +92,12 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
 
   const supabase = await createClient()
 
+  // Column list explicitly excludes stripe_secret_key (REVOKEd from anon/
+  // authenticated at the DB level). We derive hasStripeKey via a separate
+  // existence check so the client never receives the key itself.
   const { data: venue } = await supabase
     .from('venues')
-    .select('*')
+    .select(VENUE_PUBLIC_COLUMNS)
     .eq('id', venueId)
     .single()
 
@@ -101,7 +105,26 @@ export default async function AdminPage(props: PageProps<'/admin'>) {
     redirect('/admin/login')
   }
 
-  const typedVenue = venue as unknown as Venue
+  // Key presence check uses the service-role client since the column is
+  // REVOKEd from anon/authenticated. Only the boolean crosses the server
+  // boundary — the key itself never leaves this scope.
+  let hasStripeKey = false
+  try {
+    const service = createServiceClient()
+    const { data: keyRow } = await service
+      .from('venues')
+      .select('stripe_secret_key')
+      .eq('id', venueId)
+      .single()
+    hasStripeKey = !!(keyRow as { stripe_secret_key: string | null } | null)?.stripe_secret_key
+  } catch {
+    // Service role not configured — payments features unavailable, UI falls back gracefully.
+  }
+
+  const typedVenue: Venue = {
+    ...(venue as unknown as Omit<Venue, 'hasStripeKey'>),
+    hasStripeKey,
+  }
 
   const { data: menuItems } = await supabase
     .from('menu_items')
