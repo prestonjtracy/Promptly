@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { decryptStripeKey } from '@/lib/crypto/stripe-key'
 import type { FulfillmentType, SelectedModifier } from '@/lib/supabase/types'
 
 type CheckoutRequest = {
@@ -135,7 +136,17 @@ export async function POST(req: Request) {
     })
   }
 
-  const stripe = new Stripe(venue.stripe_secret_key)
+  // Decrypt the stored key just before handing it to the Stripe SDK. The
+  // plaintext lives only in this stack frame for the duration of the call.
+  let plaintextKey: string
+  try {
+    plaintextKey = decryptStripeKey(venue.stripe_secret_key)
+  } catch (err) {
+    console.error('[Checkout] decrypt failed for venue', venue.id, err instanceof Error ? err.message : 'unknown')
+    return Response.json({ error: 'Failed to start checkout' }, { status: 500 })
+  }
+
+  const stripe = new Stripe(plaintextKey)
   const origin = req.headers.get('origin') ?? new URL(req.url).origin
 
   // Cart is stashed in session metadata so the success page can recreate the

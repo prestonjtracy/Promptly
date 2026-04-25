@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { decryptStripeKey } from '@/lib/crypto/stripe-key'
 import { submitOrder } from '@/app/actions/submit-order'
 import type { FulfillmentType, SelectedModifier } from '@/lib/supabase/types'
 
@@ -91,7 +92,9 @@ export default async function OrderSuccessPage(props: SuccessPageProps) {
 
   let session: Stripe.Checkout.Session
   try {
-    const stripe = new Stripe(venue.stripe_secret_key)
+    // Decrypt at the latest possible moment; plaintext key only lives in
+    // this stack frame for the retrieve call.
+    const stripe = new Stripe(decryptStripeKey(venue.stripe_secret_key))
     session = await stripe.checkout.sessions.retrieve(sessionId)
   } catch (err) {
     console.error('[Success] stripe retrieve failed', err instanceof Error ? err.message : 'unknown')

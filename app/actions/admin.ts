@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { encryptStripeKey } from '@/lib/crypto/stripe-key'
 
 const COOKIE_NAME = 'promptly_admin_venue'
 const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
@@ -245,7 +246,15 @@ export async function updateWorkspaceSettings(
     updatePayload.payments_enabled = settings.payments_enabled
   }
   if (typeof settings.stripe_secret_key === 'string' && settings.stripe_secret_key.length > 0) {
-    updatePayload.stripe_secret_key = settings.stripe_secret_key
+    // Encrypt before storing so a service-role leak or DB dump can't reveal
+    // sk_live_* keys. encryptStripeKey is idempotent on already-encrypted
+    // input, so accidental double-encryption is impossible here.
+    try {
+      updatePayload.stripe_secret_key = encryptStripeKey(settings.stripe_secret_key.trim())
+    } catch (err) {
+      console.error('[updateWorkspaceSettings] encrypt failed', err instanceof Error ? err.message : err)
+      return { error: 'Encryption is not configured. Contact platform admin.' }
+    }
   }
 
   const { error } = await supabase
