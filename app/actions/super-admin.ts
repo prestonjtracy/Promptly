@@ -22,17 +22,48 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'))
 }
 
-/** Best-effort client IP for rate limiting. Vercel's edge sets
- *  x-forwarded-for and x-real-ip; locally these are absent so all dev
- *  traffic shares the 'local' bucket (acceptable since dev isn't a
- *  prod attack surface). The leftmost x-forwarded-for entry is the
- *  client; downstream entries are CDN hops. */
+/**
+ * Client IP for rate limiting, with strict trust scoping.
+ *
+ * `x-forwarded-for` is freely settable by an HTTP client. Trusting it
+ * unconditionally means an attacker can rotate `X-Forwarded-For: 1.2.3.4`
+ * per request and bypass the per-IP rate limit entirely. So we only trust
+ * IP-bearing headers when we can prove the request actually came through
+ * Vercel's edge (which overwrites these headers and strips client-supplied
+ * values).
+ *
+ * Detection signal: `x-vercel-id` is set by Vercel infrastructure on every
+ * request through their edge and isn't passable through. Its presence is
+ * our "we're behind Vercel" proof. When present, prefer
+ * `x-vercel-forwarded-for` (Vercel-only header carrying the real client IP)
+ * and fall back to the standard `x-forwarded-for` only as a secondary path
+ * within the trusted-Vercel branch.
+ *
+ * Outside Vercel: dev gets a shared 'local' bucket (dev isn't a real attack
+ * surface). Production-but-not-Vercel returns a single 'untrusted-proxy'
+ * bucket — by design this means one bad actor can DOS-lock all admins,
+ * which is the safer failure mode than letting rate-limit be bypassed by
+ * spoofed headers. If you ever deploy off Vercel, replace this branch
+ * with whatever your real proxy's trustable header is.
+ */
 async function getClientIp(): Promise<string> {
   const h = await headers()
-  const xff = h.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
-  const real = h.get('x-real-ip')
-  if (real) return real
+  const onVercel = h.get('x-vercel-id') !== null
+
+  if (onVercel) {
+    const vercelXff = h.get('x-vercel-forwarded-for')
+    if (vercelXff) return vercelXff.split(',')[0].trim()
+    const xff = h.get('x-forwarded-for')
+    if (xff) return xff.split(',')[0].trim()
+    const real = h.get('x-real-ip')
+    if (real) return real
+    // On Vercel but no IP header — extremely unlikely; share a bucket.
+    return 'vercel-no-ip'
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return 'untrusted-proxy'
+  }
   return 'local'
 }
 
