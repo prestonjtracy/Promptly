@@ -239,15 +239,33 @@ type AlertInput = {
   reason: string
 }
 
+/**
+ * Defang Slack mrkdwn mention syntax (<!channel>, <!here>, <!everyone>,
+ * <@USERID>, <#CHANID>) inside untrusted text so an attacker-influenced
+ * `reason` string can't trigger a workspace-wide notification storm via
+ * `<!channel>` or impersonate-mention a user. The replacement breaks
+ * Slack's parser by inserting whitespace after the leading `<`; the rest
+ * of the text reads as plain content. Both chat.postMessage (mrkdwn
+ * default true) and incoming webhooks (always mrkdwn) honor this.
+ */
+function sanitizeForSlack(s: string): string {
+  return s.replace(/<([!@#])/g, '< $1')
+}
+
 async function alertVenue({ channel, sessionId, venueId, reason }: AlertInput) {
   const botToken = process.env.SLACK_BOT_TOKEN
   const webhookUrl = process.env.SLACK_WEBHOOK_DEFAULT
 
   // Compose a single-line, no-PII alert. Customer name / order details are
   // intentionally omitted — staff can look up by stripe_session_id.
+  // venueId and sessionId are platform/Stripe-controlled identifiers (UUIDs
+  // and 'cs_*' tokens, no special chars); reason is the only field that can
+  // carry attacker-influenced content via Stripe error strings, so it gets
+  // sanitized.
+  const safeReason = sanitizeForSlack(reason)
   const text =
     `:rotating_light: *Promptly: refund failed — manual review required*\n` +
-    `Venue: \`${venueId}\`\nStripe session: \`${sessionId}\`\nReason: ${reason}`
+    `Venue: \`${venueId}\`\nStripe session: \`${sessionId}\`\nReason: ${safeReason}`
 
   try {
     if (channel && botToken) {
