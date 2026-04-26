@@ -83,7 +83,7 @@ export async function handleFailedOrder(
   if (!paymentIntentId) {
     // No payment intent means there's nothing to refund. Still record so the
     // page renders consistent UI on refresh and we have a paper trail.
-    await persistFailure({
+    const persisted = await persistFailure({
       stripe_session_id: session.id,
       payment_intent_id: null,
       venue_id: venueId,
@@ -98,8 +98,9 @@ export async function handleFailedOrder(
       channel: alertSlackChannel,
       sessionId: session.id,
       venueId,
-      reason:
-        'No payment_intent on session — refund could not be issued. Manual review required.',
+      reason: persisted.ok
+        ? 'No payment_intent on session — refund could not be issued. Manual review required.'
+        : `No payment_intent on session AND audit-row write failed (${persisted.message}). Manual review required.`,
     })
     return {
       status: 'refund_failed',
@@ -140,7 +141,7 @@ export async function handleFailedOrder(
         refundError: message,
       }),
     )
-    await persistFailure({
+    const persisted = await persistFailure({
       stripe_session_id: session.id,
       payment_intent_id: paymentIntentId,
       venue_id: venueId,
@@ -155,7 +156,9 @@ export async function handleFailedOrder(
       channel: alertSlackChannel,
       sessionId: session.id,
       venueId,
-      reason: `Refund FAILED — money stuck. Stripe: ${message.slice(0, 300)}`,
+      reason: persisted.ok
+        ? `Refund FAILED — money stuck. Stripe: ${message.slice(0, 300)}`
+        : `Refund FAILED — money stuck (Stripe: ${message.slice(0, 200)}). Audit-row write ALSO failed (${persisted.message.slice(0, 100)}).`,
     })
     return { status: 'refund_failed', reason: message }
   }
@@ -184,7 +187,7 @@ export async function handleFailedOrder(
     }),
   )
 
-  await persistFailure({
+  const persisted = await persistFailure({
     stripe_session_id: session.id,
     payment_intent_id: paymentIntentId,
     venue_id: venueId,
@@ -201,9 +204,29 @@ export async function handleFailedOrder(
       channel: alertSlackChannel,
       sessionId: session.id,
       venueId,
-      reason: `Stripe refund object returned status='failed' (${refund.failure_reason ?? 'no reason'}). Money stuck.`,
+      reason: persisted.ok
+        ? `Stripe refund object returned status='failed' (${refund.failure_reason ?? 'no reason'}). Money stuck.`
+        : `Stripe refund status='failed' (${refund.failure_reason ?? 'no reason'}) AND audit-row write failed (${persisted.message.slice(0, 100)}). Money stuck.`,
     })
     return { status: 'refund_failed', reason: refund.failure_reason ?? 'failed' }
+  }
+
+  // Refund accepted by Stripe BUT we couldn't audit-log it. Customer's money
+  // is on its way back, but we have no DB row, so subsequent refreshes will
+  // miss the priorFailure short-circuit and re-enter this code path. The
+  // Stripe idempotency_key means no duplicate refunds are ever issued, but
+  // the operator needs to know there's an audit gap that requires manual
+  // reconciliation. We surface this to the page as refund_failed (which
+  // renders the "stuck — contact venue" UI) so the customer is directed to
+  // the venue, who can confirm the refund did happen via Stripe Dashboard.
+  if (!persisted.ok) {
+    await alertVenue({
+      channel: alertSlackChannel,
+      sessionId: session.id,
+      venueId,
+      reason: `Stripe refund SUCCEEDED (id=${refund.id}, status=${refund.status}) but audit-row write FAILED (${persisted.message.slice(0, 200)}). Customer was directed to contact venue. Manual reconciliation required.`,
+    })
+    return { status: 'refund_failed', reason: 'audit_persist_failed' }
   }
 
   return { status: 'refunded', refundId: refund.id }
@@ -213,21 +236,28 @@ export async function handleFailedOrder(
 
 type FailureRowInsert = Omit<PaymentFailureRow, 'created_at' | 'updated_at'>
 
-async function persistFailure(row: FailureRowInsert) {
+type PersistResult = { ok: true } | { ok: false; message: string }
+
+async function persistFailure(row: FailureRowInsert): Promise<PersistResult> {
   const supabase = createServiceClient()
-  // ON CONFLICT DO NOTHING semantics via upsert with ignoreDuplicates: a
-  // racing concurrent invocation that already wrote the row would otherwise
-  // throw a unique-violation here. We swallow that intentionally — the
-  // already-written row is the source of truth.
+  // `ignoreDuplicates: true` translates to INSERT ... ON CONFLICT DO NOTHING
+  // at the SQL level, so a concurrent winner that wrote the same
+  // stripe_session_id key does NOT surface as an error here — the operation
+  // is a no-op and ok=true. Any error returned is therefore a genuine audit
+  // failure (DB unreachable, RLS misconfig, schema drift, etc.) that callers
+  // must treat as such — the audit-trail requirement is silently broken if
+  // we keep going on a non-conflict failure.
   const { error } = await supabase
     .from('payment_failures')
     .upsert(row, { onConflict: 'stripe_session_id', ignoreDuplicates: true })
   if (error) {
     console.error(
-      '[handleFailedOrder] failed to persist payment_failures row',
+      '[handleFailedOrder] persist FAILED',
       JSON.stringify({ sessionId: row.stripe_session_id, error: error.message }),
     )
+    return { ok: false, message: error.message }
   }
+  return { ok: true }
 }
 
 // ── Slack alert ──────────────────────────────────────────────
