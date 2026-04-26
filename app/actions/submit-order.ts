@@ -175,8 +175,14 @@ export async function submitOrder(
       .in('id', itemIds)
 
     const venueItems = (menuRows ?? []) as { id: string; venue_id: string }[]
+    // Compare against the DEDUPED count of requested ids. Postgres-side
+    // `id in (...)` returns one row per distinct id regardless of how many
+    // times it appeared in the input, so a cart with two line items pointing
+    // to the same menu_item_id (same item with two different modifier sets,
+    // for instance) used to fall out of `length === length` and be rejected.
+    const uniqueItemIds = new Set(itemIds)
     const allBelong =
-      venueItems.length === itemIds.length &&
+      uniqueItemIds.size === venueItems.length &&
       venueItems.every((m) => m.venue_id === data.venue_id)
 
     if (!allBelong) {
