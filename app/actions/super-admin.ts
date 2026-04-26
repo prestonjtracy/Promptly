@@ -1,7 +1,7 @@
 'use server'
 
-import { timingSafeEqual } from 'node:crypto'
-import { cookies } from 'next/headers'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { cookies, headers } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isKnownTier } from '@/lib/super-admin/platform-config'
 import type { VenueFeatures } from '@/lib/supabase/types'
@@ -9,36 +9,115 @@ import type { VenueFeatures } from '@/lib/supabase/types'
 // Deliberately distinct from the venue-admin cookie. A venue admin session
 // must NEVER be interpretable as a super-admin session, and vice versa.
 const SUPER_ADMIN_COOKIE = 'promptly_super_admin'
-const COOKIE_MAX_AGE = 60 * 60 * 24 // 24 hours
+const SESSION_TTL_SECONDS = 60 * 60 * 24 // 24 hours
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 min sliding window
+const RATE_LIMIT_MAX_ATTEMPTS = 5
 
-/** Constant-time string compare. Short-circuits on length mismatch so the
- *  compare itself can still be done on equal-length buffers. */
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Constant-time string compare against the env-var passcode. Short-circuits
+ *  on length mismatch so the compare itself runs on equal-length buffers. */
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false
   return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'))
 }
 
+/** Best-effort client IP for rate limiting. Vercel's edge sets
+ *  x-forwarded-for and x-real-ip; locally these are absent so all dev
+ *  traffic shares the 'local' bucket (acceptable since dev isn't a
+ *  prod attack surface). The leftmost x-forwarded-for entry is the
+ *  client; downstream entries are CDN hops. */
+async function getClientIp(): Promise<string> {
+  const h = await headers()
+  const xff = h.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0].trim()
+  const real = h.get('x-real-ip')
+  if (real) return real
+  return 'local'
+}
+
 // ── Auth ─────────────────────────────────────────────────────
 
+/**
+ * Outcomes:
+ *   { success: true }                            — login OK; cookie set
+ *   { error: 'Super admin is not configured.' } — env var unset
+ *   { error: 'Too many attempts. Try again later.' } — rate-limited
+ *   { error: 'Incorrect passcode.' }            — wrong passcode
+ */
 export async function loginSuperAdmin(passcode: string) {
   const expected = process.env.SUPER_ADMIN_PASSCODE
 
-  // If the env var isn't set, refuse all logins. Never auto-allow — an
-  // unconfigured platform must not be an open platform.
+  // Refuse all logins if the env var is missing. An unconfigured platform
+  // must never auto-allow.
   if (!expected || expected.length === 0) {
     return { error: 'Super admin is not configured.' }
   }
 
+  const supabase = createServiceClient()
+  const ip = await getClientIp()
+  const now = new Date()
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS)
+
+  // Opportunistic cleanup: rows older than the rate-limit window are
+  // useless. Cheap delete keyed on the same composite index as the count
+  // below, so the rate-limit table stays small.
+  await supabase
+    .from('super_admin_login_attempts')
+    .delete()
+    .lt('attempted_at', windowStart.toISOString())
+
+  // Count fresh failed attempts from this IP. If >= cap, reject without
+  // even running the bcrypt-style compare. Leaking "you're rate-limited"
+  // vs "wrong passcode" is intentional — we want attackers to back off.
+  const { count: recentAttempts } = await supabase
+    .from('super_admin_login_attempts')
+    .select('*', { count: 'exact', head: true })
+    .eq('ip', ip)
+    .gte('attempted_at', windowStart.toISOString())
+
+  if ((recentAttempts ?? 0) >= RATE_LIMIT_MAX_ATTEMPTS) {
+    return { error: 'Too many attempts. Try again later.' }
+  }
+
   if (!safeEqual(passcode, expected)) {
+    // Record the failed attempt and reject.
+    await supabase
+      .from('super_admin_login_attempts')
+      .insert({ ip, attempted_at: now.toISOString() })
     return { error: 'Incorrect passcode.' }
   }
 
+  // Success path. Issue a fresh, cryptographically random token; store the
+  // active session server-side; set the cookie to that opaque token.
+  const token = randomBytes(32).toString('hex') // 256 bits, 64 hex chars
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000)
+
+  const { error: insertErr } = await supabase
+    .from('super_admin_sessions')
+    .insert({ token, expires_at: expiresAt.toISOString() })
+
+  if (insertErr) {
+    return { error: 'Could not start a session. Please try again.' }
+  }
+
+  // Sweep expired sessions on every successful login. Cheap, infrequent.
+  await supabase
+    .from('super_admin_sessions')
+    .delete()
+    .lt('expires_at', now.toISOString())
+
+  // Friendly: clear THIS IP's prior failed attempts so a real admin who
+  // mistyped a few times doesn't have a stale fail count for the next
+  // 15 minutes.
+  await supabase.from('super_admin_login_attempts').delete().eq('ip', ip)
+
   const cookieStore = await cookies()
-  cookieStore.set(SUPER_ADMIN_COOKIE, '1', {
+  cookieStore.set(SUPER_ADMIN_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: COOKIE_MAX_AGE,
+    maxAge: SESSION_TTL_SECONDS,
     path: '/',
   })
 
@@ -47,12 +126,41 @@ export async function loginSuperAdmin(passcode: string) {
 
 export async function logoutSuperAdmin() {
   const cookieStore = await cookies()
+  const token = cookieStore.get(SUPER_ADMIN_COOKIE)?.value
+
+  if (token) {
+    // Best-effort: remove the row so the token can't be reused even if
+    // the cookie is somehow recovered. If the delete fails (DB blip) the
+    // cookie is still cleared client-side and the row will age out at
+    // expires_at anyway.
+    const supabase = createServiceClient()
+    await supabase.from('super_admin_sessions').delete().eq('token', token)
+  }
+
   cookieStore.delete(SUPER_ADMIN_COOKIE)
 }
 
 export async function isSuperAdmin(): Promise<boolean> {
   const cookieStore = await cookies()
-  return cookieStore.get(SUPER_ADMIN_COOKIE)?.value === '1'
+  const token = cookieStore.get(SUPER_ADMIN_COOKIE)?.value
+  if (!token) return false
+
+  // Format guard: tokens are exactly 64 lowercase hex chars. Anything else
+  // is a stale '1' cookie from before this fix, garbage from XSS attempts,
+  // or a corrupted value — skip the DB lookup. Doesn't change correctness
+  // (the lookup would return null) but avoids a query on every junk hit.
+  if (!/^[a-f0-9]{64}$/.test(token)) return false
+
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('super_admin_sessions')
+    .select('expires_at')
+    .eq('token', token)
+    .maybeSingle()
+
+  if (!data) return false
+  const row = data as { expires_at: string }
+  return new Date(row.expires_at) > new Date()
 }
 
 // ── Mutations (service-role client; cookie gate is the authz) ───
