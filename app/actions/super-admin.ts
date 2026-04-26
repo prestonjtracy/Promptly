@@ -57,34 +57,40 @@ export async function loginSuperAdmin(passcode: string) {
   const supabase = createServiceClient()
   const ip = await getClientIp()
   const now = new Date()
-  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS)
 
-  // Opportunistic cleanup: rows older than the rate-limit window are
-  // useless. Cheap delete keyed on the same composite index as the count
-  // below, so the rate-limit table stays small.
-  await supabase
-    .from('super_admin_login_attempts')
-    .delete()
-    .lt('attempted_at', windowStart.toISOString())
+  // Atomic rate-limit gate: a Postgres function holds a per-IP advisory
+  // lock around cleanup → count → maybe-insert, so two concurrent requests
+  // can't both observe count=4 and both proceed. The function returns true
+  // when the attempt is allowed (and HAS recorded the attempt row); false
+  // when this IP has already used its allowance for the window.
+  // See migration 00019.
+  const { data: allowed, error: rateErr } = await supabase.rpc(
+    'check_and_record_super_admin_attempt',
+    {
+      p_ip: ip,
+      p_window_seconds: Math.floor(RATE_LIMIT_WINDOW_MS / 1000),
+      p_max_attempts: RATE_LIMIT_MAX_ATTEMPTS,
+    },
+  )
 
-  // Count fresh failed attempts from this IP. If >= cap, reject without
-  // even running the bcrypt-style compare. Leaking "you're rate-limited"
-  // vs "wrong passcode" is intentional — we want attackers to back off.
-  const { count: recentAttempts } = await supabase
-    .from('super_admin_login_attempts')
-    .select('*', { count: 'exact', head: true })
-    .eq('ip', ip)
-    .gte('attempted_at', windowStart.toISOString())
+  if (rateErr) {
+    // Fail closed: a DB error here is preferable to letting a request
+    // through unchecked. Don't expose the underlying error to the caller.
+    console.error('[loginSuperAdmin] rate-limit RPC failed', rateErr.message)
+    return { error: 'Could not verify rate limit. Try again.' }
+  }
 
-  if ((recentAttempts ?? 0) >= RATE_LIMIT_MAX_ATTEMPTS) {
+  if (allowed === false) {
+    // Leaking "you're rate-limited" vs "wrong passcode" is intentional —
+    // we want attackers to back off, and a real admin who mistyped sees a
+    // distinct, actionable message.
     return { error: 'Too many attempts. Try again later.' }
   }
 
+  // From here on the attempt has already been recorded. A wrong passcode
+  // simply leaves the row as a failed-attempt audit; the success branch
+  // clears all of this IP's rows after the bcrypt-style compare.
   if (!safeEqual(passcode, expected)) {
-    // Record the failed attempt and reject.
-    await supabase
-      .from('super_admin_login_attempts')
-      .insert({ ip, attempted_at: now.toISOString() })
     return { error: 'Incorrect passcode.' }
   }
 
