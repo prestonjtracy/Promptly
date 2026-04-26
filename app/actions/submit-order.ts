@@ -216,8 +216,12 @@ export async function submitOrder(
       .single()
 
     if (orderError || !order) {
-      console.error('Order insert error:', orderError)
-      return { error: `Failed to submit order: ${orderError?.message ?? 'Unknown error'}` }
+      // Underlying Postgres errors can echo column values in their messages
+      // (e.g. constraint-violation text including customer_id_value or notes).
+      // Log the raw error server-side; return a generic string so it can't
+      // be forwarded into Stripe metadata or Slack alerts as PII.
+      console.error('[submitOrder] order insert error', orderError?.message ?? 'unknown')
+      return { error: 'Could not save the order. Please contact support.' }
     }
 
     const orderItems = data.items.map((item) => ({
@@ -232,8 +236,9 @@ export async function submitOrder(
       .insert(orderItems)
 
     if (itemsError) {
-      console.error('Order items insert error:', itemsError)
-      return { error: `Failed to submit items: ${itemsError.message}` }
+      // Same redaction policy as the order-insert error above.
+      console.error('[submitOrder] order_items insert error', itemsError.message)
+      return { error: 'Could not save the order items. Please contact support.' }
     }
 
     // Send Slack notification(s)
