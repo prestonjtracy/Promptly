@@ -270,16 +270,20 @@ type AlertInput = {
 }
 
 /**
- * Defang Slack mrkdwn mention syntax (<!channel>, <!here>, <!everyone>,
- * <@USERID>, <#CHANID>) inside untrusted text so an attacker-influenced
- * `reason` string can't trigger a workspace-wide notification storm via
- * `<!channel>` or impersonate-mention a user. The replacement breaks
- * Slack's parser by inserting whitespace after the leading `<`; the rest
- * of the text reads as plain content. Both chat.postMessage (mrkdwn
- * default true) and incoming webhooks (always mrkdwn) honor this.
+ * Defang Slack mrkdwn auto-rendering for untrusted text. Covers:
+ *   <!channel>, <!here>, <!everyone>, <!subteam^...>   — notifications
+ *   <@USERID>, <#CHANID>                                — mentions
+ *   <https://...>, <http://...>, <mailto:...>          — clickable links,
+ *                                                        used for phishing
+ *                                                        with `<url|fake text>`
+ *
+ * Inserting whitespace after the leading `<` breaks Slack's parser; the rest
+ * of the text reads as plain content. Both chat.postMessage (mrkdwn default
+ * true) and incoming webhooks (always mrkdwn) honor this. Case-insensitive
+ * so `<HTTPS://...>` and similar are also caught.
  */
 function sanitizeForSlack(s: string): string {
-  return s.replace(/<([!@#])/g, '< $1')
+  return s.replace(/<([!@#]|https?:|mailto:)/gi, '< $1')
 }
 
 async function alertVenue({ channel, sessionId, venueId, reason }: AlertInput) {
