@@ -619,15 +619,21 @@ export async function reorderTabs(venueId: string, tabIds: string[]) {
     return { error: 'Unauthorized.' }
   }
 
-  const supabase = await createClient()
+  // Atomic reorder via the migration-00020 RPC. Either every tab gets its
+  // new sort_order or none of them do. The RPC also re-validates that
+  // every tab id belongs to this venue before writing, so a forged tabIds
+  // array can't shuffle another venue's tabs even if the cookie check
+  // above were ever bypassed. EXECUTE is revoked from anon/authenticated,
+  // so we call via the service-role client.
+  const service = createServiceClient()
+  const { error } = await service.rpc('reorder_venue_tabs', {
+    p_venue_id: venueId,
+    p_tab_ids: tabIds,
+  })
 
-  for (let i = 0; i < tabIds.length; i++) {
-    const { error } = await supabase
-      .from('venue_tabs')
-      .update({ sort_order: i })
-      .eq('id', tabIds[i])
-      .eq('venue_id', venueId)
-    if (error) return { error: 'Failed to reorder tabs.' }
+  if (error) {
+    console.error('[reorderTabs] RPC failed', error.message)
+    return { error: 'Failed to reorder tabs.' }
   }
 
   return { success: true }
