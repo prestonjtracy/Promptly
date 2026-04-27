@@ -25,7 +25,6 @@ Key Positioning:
 -Promptly does NOT compete with POS systems for established businesses
 -Promptly IS the POS system for startups who need one
 -Use Case 1 and Use Case 2 have separate pricing tiers reflecting different needs
--Pricing is TBD and intentionally not defined yet
 
 Current Build Status:
 

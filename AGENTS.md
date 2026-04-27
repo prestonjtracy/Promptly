@@ -27,3 +27,15 @@ For changes that touch only markdown files, configuration comments, or other non
 
 When a fix or feature surfaces additional related issues (e.g., the same bug pattern in another file), do not auto-fix them. Flag them in the report back to the owner so they can decide whether to address now, defer, or document as a follow-up. Adding scope mid-task is how cleanups never finish.
 <!-- END:scope-discipline -->
+
+<!-- BEGIN:pricing -->
+# Pricing
+
+Do not propose pricing numbers or tier prices anywhere — UI copy, plans, comments, or docs. Promptly's pricing is intentionally undefined and is the owner's call. If a feature design requires assuming a price for the design to make sense, flag the assumption back to the owner instead of baking a value in.
+<!-- END:pricing -->
+
+<!-- BEGIN:tech-stack-boundary -->
+# Tech stack boundary
+
+The stack is Next.js 16, Supabase, Slack webhooks, Stripe (per-venue), and Vercel. Do not add new infrastructure (Redis, separate auth providers, queue systems, search engines, alternative databases) without flagging the proposal first and getting the owner's sign-off. Solving within the existing primitives is preferred unless they genuinely don't fit.
+<!-- END:tech-stack-boundary -->
