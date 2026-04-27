@@ -58,3 +58,37 @@ Tech Stack:
 Next.js 16 (App Router, TypeScript, Tailwind CSS), Supabase, Slack webhooks, Stripe (coming), Vercel deployment.
 Owner:
 Preston Tracy — solo builder, vibe coding with Claude Code in Cursor.
+
+## Known follow-ups
+
+### `reorderRequests` partial-failure pattern (`app/actions/admin.ts:160-182`)
+Same shape as the `reorderTabs` bug fixed in commit `f1dcfe4`: a JS for-loop
+of sequential `UPDATE`s on `menu_items.sort_order`, no schema constraint.
+A failure midway can leave duplicate `sort_order` values within a venue,
+and the database has no `UNIQUE` to catch it.
+
+**Fix shape (when ready):** mirror the `reorderTabs` solution —
+1. Add a `DEFERRABLE INITIALLY DEFERRED` UNIQUE constraint to `menu_items`.
+2. Create a `SECURITY DEFINER` Postgres function that does a single
+   `UPDATE … FROM unnest(p_item_ids) WITH ORDINALITY` and validates that
+   every id belongs to the venue.
+3. `REVOKE EXECUTE` from `public, anon, authenticated`; call via the
+   service-role client from `reorderRequests`.
+4. Renumber any pre-existing duplicates as a migration step before the
+   constraint is added.
+
+**Design decision needed before fixing:** `menu_items` has both `venue_id`
+and a nullable `category_id`. Today the customer page groups items by
+category, so visually the order is per-category. Do we want:
+
+- **Option A** — `UNIQUE (venue_id, sort_order)`. One global ordering per
+  venue. Simpler, matches `venue_tabs`. Loses the implicit "items within a
+  category have their own ordering" property.
+- **Option B** — `UNIQUE (venue_id, category_id, sort_order)`. Per-category
+  ordering. More accurate to current rendering; needs a `NULLS NOT
+  DISTINCT` clause (Postgres 15+) so uncategorized items aren't all
+  collapsed into one slot.
+
+The Phase-2 custom-tabs work may also reshape this (items will increasingly
+key on `tab_id` instead of `category_id`), so it's worth landing the tab
+relationship before settling the constraint.
