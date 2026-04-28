@@ -1,5 +1,10 @@
 export type PlanType = 'pos_only' | 'full_commerce'
 
+/** Receipt billing state for the customer-facing order chassis. Drives which
+ *  closing line the confirmation screen shows. Independent of payments_enabled
+ *  — admins set both. See migration 00021. */
+export type BillingState = 'house_account' | 'tab' | 'complimentary' | 'paid'
+
 export type Venue = {
   id: string
   name: string
@@ -7,6 +12,9 @@ export type Venue = {
   logo_url: string | null
   primary_color: string
   accent_color: string
+  /** Noun used for a location row, e.g. "Hole" / "Pier" / "Slip".
+   *  Distinct from location_subhead below — that one is the masthead
+   *  subhead phrasing ("ON CART", "ON SLIP"). Don't conflate. */
   location_type_label: string
   customer_id_label: string | null
   customer_id_required: boolean
@@ -19,6 +27,29 @@ export type Venue = {
   plan_type: PlanType
   payments_enabled: boolean
   tier: string
+
+  // ── Editorial-chassis copy (and any future chassis). ─────────
+  // All chassis-agnostic copy — what to say, not how to style it.
+  /** Masthead subtitle, e.g. "EST. 1962" or "SLIP & SAIL". Null hides. */
+  tagline: string | null
+  /** Masthead subhead capitalized phrase, e.g. "ON CART" / "ON SLIP". Null hides. */
+  location_subhead: string | null
+  /** Cart-screen location-question label, e.g. "WHERE ON THE COURSE?".
+   *  Null falls back to chassis default (Editorial: "WHERE ARE YOU?"). */
+  location_question_label: string | null
+  /** Cart submit CTA label. Default 'Submit Request' set in migration. */
+  submit_cta_label: string
+  /** Confirmation screen big headline. Default 'On its way.' in migration. */
+  success_headline: string
+  /** Confirmation body sentence, e.g. "The beverage cart will meet you at the
+   *  next tee." Null falls back to a generic chassis sentence. */
+  fulfillment_copy: string | null
+  /** When set, the confirmation appends "Estimated arrival in N minutes."
+   *  Null hides the ETA tail entirely. */
+  default_fulfillment_eta_minutes: number | null
+  /** Drives the receipt closing line on the confirmation screen. */
+  billing_state: BillingState
+
   // Computed server-side. The raw stripe_secret_key column is never
   // loaded into this type — the REVOKE at the DB level enforces that
   // and a service-role client reads the key only inside trusted routes.
@@ -31,7 +62,7 @@ export type Venue = {
  *  and passcode/passcode_hash — those are REVOKEd at the DB level and read only
  *  through the service-role client inside trusted server actions. */
 export const VENUE_PUBLIC_COLUMNS =
-  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, tier, created_at, updated_at'
+  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, tier, tagline, location_subhead, location_question_label, submit_cta_label, success_headline, fulfillment_copy, default_fulfillment_eta_minutes, billing_state, created_at, updated_at'
 
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {
