@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { hasFeature } from '@/lib/features'
-import { VENUE_PUBLIC_COLUMNS, type Venue, type Location, type RequestWithModifiers, type VenueTab } from '@/lib/supabase/types'
-import { OrderForm } from './_components/order-form'
+import { VENUE_PUBLIC_COLUMNS, type Venue, type Location, type RequestWithModifiers } from '@/lib/supabase/types'
+import { OrderShell } from './_shell/order-shell'
 
 export async function generateMetadata(props: {
   params: Promise<{ venueSlug: string }>
@@ -119,25 +118,17 @@ export default async function OrderPage(props: {
     })
   )
 
-  // Load configured tabs only when the feature is on. 'internal' tabs are
-  // hidden from the customer page — those exist for staff workflows.
-  let customerTabs: VenueTab[] = []
-  if (hasFeature(typedVenue, 'custom_tabs')) {
-    const { data: tabRows } = await supabase
-      .from('venue_tabs')
-      .select('*')
-      .eq('venue_id', typedVenue.id)
-      .neq('type', 'internal')
-      .order('sort_order')
-    customerTabs = (tabRows ?? []) as unknown as VenueTab[]
-  }
+  // NOTE: custom_tabs UI integration with the Editorial chassis is a
+  // follow-up. The chassis renders all customer-visible menu_items grouped
+  // by their menu_categories regardless of the custom_tabs feature flag.
+  // Venues with the flag enabled keep their server-side tab data intact in
+  // the venue_tabs table; only the customer-facing tab nav is paused.
 
   return (
-    <OrderForm
+    <OrderShell
       venue={typedVenue}
       location={location}
       menuItems={typedMenuItems}
-      tabs={customerTabs}
     />
   )
 }
