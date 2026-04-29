@@ -183,6 +183,18 @@ export async function reorderRequests(
 
 // ── Workspace Settings ───────────────────────────────────────
 
+/** The DB CHECK on venues.billing_state. Kept here as a JS-side guard so a
+ *  forged request can't slip an unknown enum past the server action. */
+const BILLING_STATES = ['house_account', 'tab', 'complimentary', 'paid'] as const
+type BillingStateLiteral = (typeof BILLING_STATES)[number]
+function isBillingState(v: string): v is BillingStateLiteral {
+  return (BILLING_STATES as readonly string[]).includes(v)
+}
+
+/** Reasonable upper bound on default_fulfillment_eta_minutes. Anything over
+ *  4 hours is almost certainly a fat-finger typo. */
+const ETA_MAX_MINUTES = 240
+
 export async function updateWorkspaceSettings(
   venueId: string,
   settings: {
@@ -198,6 +210,18 @@ export async function updateWorkspaceSettings(
     logo_url: string | null
     payments_enabled?: boolean
     stripe_secret_key?: string
+    // ── Order Page Copy (Editorial chassis fields). All optional in the
+    //    type so partial saves keep working; absence on the wire means
+    //    "don't touch this column." Each field has its own validation and
+    //    null/empty handling below. See migration 00021. ──
+    tagline?: string | null
+    location_subhead?: string | null
+    location_question_label?: string | null
+    submit_cta_label?: string
+    success_headline?: string
+    fulfillment_copy?: string | null
+    default_fulfillment_eta_minutes?: number | null
+    billing_state?: string
   }
 ) {
   const adminVenueId = await getAdminVenueId()
@@ -255,6 +279,62 @@ export async function updateWorkspaceSettings(
       console.error('[updateWorkspaceSettings] encrypt failed', err instanceof Error ? err.message : err)
       return { error: 'Encryption is not configured. Contact platform admin.' }
     }
+  }
+
+  // ── Order Page Copy fields (migration 00021). Each field is processed
+  //    only when explicitly provided on the wire, so a partial save never
+  //    nulls out a column the caller didn't intend to touch. ──
+
+  // Nullable text fields: trim, store null when blank.
+  for (const key of [
+    'tagline',
+    'location_subhead',
+    'location_question_label',
+    'fulfillment_copy',
+  ] as const) {
+    if (typeof settings[key] !== 'undefined') {
+      const raw = settings[key]
+      const trimmed = (raw ?? '').trim()
+      updatePayload[key] = trimmed.length > 0 ? trimmed : null
+    }
+  }
+
+  // NOT NULL text fields with DB defaults. If the caller explicitly
+  // sends an empty string we reject — the form already JS-guards against
+  // this; the server check is defense-in-depth against a forged request.
+  if (typeof settings.submit_cta_label !== 'undefined') {
+    const trimmed = settings.submit_cta_label.trim()
+    if (!trimmed) return { error: 'Submit button label is required.' }
+    updatePayload.submit_cta_label = trimmed
+  }
+  if (typeof settings.success_headline !== 'undefined') {
+    const trimmed = settings.success_headline.trim()
+    if (!trimmed) return { error: 'Success headline is required.' }
+    updatePayload.success_headline = trimmed
+  }
+
+  // Nullable integer with range validation.
+  if (typeof settings.default_fulfillment_eta_minutes !== 'undefined') {
+    const eta = settings.default_fulfillment_eta_minutes
+    if (eta === null) {
+      updatePayload.default_fulfillment_eta_minutes = null
+    } else if (!Number.isInteger(eta) || eta < 1 || eta > ETA_MAX_MINUTES) {
+      return {
+        error: `Estimated arrival must be a whole number between 1 and ${ETA_MAX_MINUTES} minutes.`,
+      }
+    } else {
+      updatePayload.default_fulfillment_eta_minutes = eta
+    }
+  }
+
+  // Enum guard: must match the DB CHECK exactly. The DB constraint would
+  // also reject an unknown value, but a clean app-side error is friendlier
+  // than a Postgres constraint-violation surface.
+  if (typeof settings.billing_state !== 'undefined') {
+    if (!isBillingState(settings.billing_state)) {
+      return { error: 'Unknown billing state.' }
+    }
+    updatePayload.billing_state = settings.billing_state
   }
 
   const { error } = await supabase
