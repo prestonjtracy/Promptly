@@ -1,15 +1,18 @@
 import { Newsreader, Inter } from 'next/font/google'
 
-// Editorial chassis typeface: Newsreader. Loaded with the optical-size axis
-// so the magazine-display sizes (38–56px) and body-text sizes (12–18px) both
-// render with their intended optical metrics. Italic 300 is the chassis's
+// Editorial chassis typeface: Newsreader. Italic 300 is the chassis's
 // signature display weight; 400/500/600 covers everything else. Variable
 // font subset is `latin`.
+//
+// next/font rejects combining an explicit `weight: [...]` array with the
+// `axes` option on a variable font, so we list weights explicitly and skip
+// the `opsz` axis. The chassis renders correctly at the sizes it uses
+// (12–56px) without the optical-size axis; revisit if we ever need
+// finer-grained typographic control at extreme sizes.
 const newsreader = Newsreader({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600'],
   style: ['normal', 'italic'],
-  axes: ['opsz'],
   display: 'swap',
   variable: '--font-newsreader',
 })
