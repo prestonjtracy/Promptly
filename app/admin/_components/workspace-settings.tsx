@@ -2,10 +2,21 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Venue, VenueTab } from '@/lib/supabase/types'
+import type { BillingState, Venue, VenueTab } from '@/lib/supabase/types'
 import { canUsePayments, hasFeature } from '@/lib/features'
 import { updateWorkspaceSettings } from '@/app/actions/admin'
 import { TabsManager } from './tabs-manager'
+
+const BILLING_STATE_LABELS: Record<BillingState, string> = {
+  house_account: 'House account',
+  tab: 'Tab',
+  complimentary: 'Complimentary',
+  paid: 'Paid',
+}
+
+/** Matches the server-side cap in updateWorkspaceSettings. Kept in sync
+ *  manually — if the server cap moves, move this with it. */
+const ETA_MAX_MINUTES = 240
 
 type WorkspaceSettingsProps = {
   venue: Venue
@@ -87,12 +98,69 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
   const [paymentsEnabled, setPaymentsEnabled] = useState(venue.payments_enabled)
   const [stripeKeyInput, setStripeKeyInput] = useState('')
 
+  // Order Page Copy — Editorial chassis fields (migration 00021). Each piece
+  // of state mirrors a venue column 1:1. ETA is held as a string because
+  // <input> values are strings and we want to preserve "" as "leave blank";
+  // we convert at save time.
+  const [tagline, setTagline] = useState(venue.tagline ?? '')
+  const [locationSubhead, setLocationSubhead] = useState(venue.location_subhead ?? '')
+  const [locationQuestionLabel, setLocationQuestionLabel] = useState(
+    venue.location_question_label ?? '',
+  )
+  const [submitCtaLabel, setSubmitCtaLabel] = useState(venue.submit_cta_label)
+  const [successHeadline, setSuccessHeadline] = useState(venue.success_headline)
+  const [fulfillmentCopy, setFulfillmentCopy] = useState(venue.fulfillment_copy ?? '')
+  const [etaInput, setEtaInput] = useState(
+    venue.default_fulfillment_eta_minutes != null
+      ? String(venue.default_fulfillment_eta_minutes)
+      : '',
+  )
+  const [billingState, setBillingState] = useState<BillingState>(venue.billing_state)
+
+  // Inline validation state. Populated only after a save attempt; cleared on
+  // the next attempt or when the user types in the offending field. Showing
+  // these always-on would nag the user before they've done anything wrong.
+  const [requiredCtaError, setRequiredCtaError] = useState(false)
+  const [requiredHeadlineError, setRequiredHeadlineError] = useState(false)
+  const [etaError, setEtaError] = useState<string | null>(null)
+
   const handleSave = () => {
     setError(null)
     setSaved(false)
+    // Reset inline validation state — the upcoming checks repopulate it.
+    setRequiredCtaError(false)
+    setRequiredHeadlineError(false)
+    setEtaError(null)
 
     if (!allowPickup && !allowDelivery) {
       setError('At least one fulfillment option must be enabled.')
+      return
+    }
+
+    // ── Order Page Copy validation. Set inline flags; if any fail, abort
+    //    BEFORE the server action so the user sees per-field feedback in
+    //    addition to the top-level error. ──
+    let hasOrderCopyError = false
+    if (!submitCtaLabel.trim()) {
+      setRequiredCtaError(true)
+      hasOrderCopyError = true
+    }
+    if (!successHeadline.trim()) {
+      setRequiredHeadlineError(true)
+      hasOrderCopyError = true
+    }
+    let etaValue: number | null = null
+    if (etaInput.trim() !== '') {
+      const n = Number(etaInput)
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > ETA_MAX_MINUTES) {
+        setEtaError(`Must be a whole number between 1 and ${ETA_MAX_MINUTES}.`)
+        hasOrderCopyError = true
+      } else {
+        etaValue = n
+      }
+    }
+    if (hasOrderCopyError) {
+      setError('Please fix the highlighted fields below.')
       return
     }
 
@@ -116,6 +184,16 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
               ...(stripeKeyInput.trim() ? { stripe_secret_key: stripeKeyInput.trim() } : {}),
             }
           : {}),
+        // Order Page Copy. Send '' as null for nullable text; send trimmed
+        // values for the NOT NULL fields (already validated non-empty above).
+        tagline: tagline.trim() || null,
+        location_subhead: locationSubhead.trim() || null,
+        location_question_label: locationQuestionLabel.trim() || null,
+        submit_cta_label: submitCtaLabel.trim(),
+        success_headline: successHeadline.trim(),
+        fulfillment_copy: fulfillmentCopy.trim() || null,
+        default_fulfillment_eta_minutes: etaValue,
+        billing_state: billingState,
       })
 
       if (result.error) {
@@ -318,6 +396,222 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
         <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: primaryColor }}>
           <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white" style={{ background: accentColor }}>Aa</div>
           <span className="text-sm text-white font-medium">Preview</span>
+        </div>
+      </div>
+
+      {/* Order Page Copy — Editorial chassis text. Three subsections mirror
+          the chassis screens (Masthead / Cart / Confirmation) so an admin
+          editing a field can mentally place where it shows up. */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-5">
+        <div>
+          <h2 className="font-semibold text-gray-900">Order Page Copy</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Text shown to customers on the order page. Each section below
+            corresponds to a screen in the customer flow.
+          </p>
+        </div>
+
+        {/* ── MASTHEAD ── */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Masthead
+          </p>
+          <div>
+            <label htmlFor="copy-tagline" className="block text-sm font-medium text-gray-700 mb-1">
+              Tagline
+            </label>
+            <input
+              id="copy-tagline"
+              type="text"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
+              placeholder="EST. 1962"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Small text under the venue name in the order page header. Leave blank to hide.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="copy-location-subhead" className="block text-sm font-medium text-gray-700 mb-1">
+              Location subhead
+            </label>
+            <input
+              id="copy-location-subhead"
+              type="text"
+              value={locationSubhead}
+              onChange={(e) => setLocationSubhead(e.target.value)}
+              placeholder="ON CART"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Label paired with the venue&apos;s location in the masthead. Leave blank to hide.
+            </p>
+          </div>
+        </div>
+
+        {/* ── CART SCREEN ── */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Cart screen
+          </p>
+          <div>
+            <label htmlFor="copy-location-question" className="block text-sm font-medium text-gray-700 mb-1">
+              Location question
+            </label>
+            <input
+              id="copy-location-question"
+              type="text"
+              value={locationQuestionLabel}
+              onChange={(e) => setLocationQuestionLabel(e.target.value)}
+              placeholder="WHERE ON THE COURSE?"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Question asked when a customer needs to tell you where they are.
+              Leave blank to use the default &ldquo;Where are you?&rdquo;.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="copy-submit-cta" className="block text-sm font-medium text-gray-700 mb-1">
+              Submit button label
+            </label>
+            <input
+              id="copy-submit-cta"
+              type="text"
+              value={submitCtaLabel}
+              onChange={(e) => {
+                setSubmitCtaLabel(e.target.value)
+                if (requiredCtaError && e.target.value.trim()) setRequiredCtaError(false)
+              }}
+              placeholder="Submit Request"
+              aria-invalid={requiredCtaError}
+              className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                requiredCtaError
+                  ? 'border-red-400 focus:border-red-500'
+                  : 'border-gray-200 focus:border-gray-900'
+              }`}
+            />
+            {requiredCtaError ? (
+              <p className="text-xs text-red-600 mt-1">Required.</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">
+                Text on the submit button at the bottom of the cart. Required.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ── CONFIRMATION SCREEN ── */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Confirmation screen
+          </p>
+          <div>
+            <label htmlFor="copy-success-headline" className="block text-sm font-medium text-gray-700 mb-1">
+              Success headline
+            </label>
+            <input
+              id="copy-success-headline"
+              type="text"
+              value={successHeadline}
+              onChange={(e) => {
+                setSuccessHeadline(e.target.value)
+                if (requiredHeadlineError && e.target.value.trim()) setRequiredHeadlineError(false)
+              }}
+              placeholder="On its way."
+              aria-invalid={requiredHeadlineError}
+              className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                requiredHeadlineError
+                  ? 'border-red-400 focus:border-red-500'
+                  : 'border-gray-200 focus:border-gray-900'
+              }`}
+            />
+            {requiredHeadlineError ? (
+              <p className="text-xs text-red-600 mt-1">Required.</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">
+                Big headline on the confirmation screen after a successful order. Required.
+              </p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="copy-fulfillment" className="block text-sm font-medium text-gray-700 mb-1">
+              Fulfillment message
+            </label>
+            <textarea
+              id="copy-fulfillment"
+              value={fulfillmentCopy}
+              onChange={(e) => setFulfillmentCopy(e.target.value)}
+              placeholder="The beverage cart will meet you at the next tee."
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Sentence on the confirmation screen telling customers what happens
+              next. Leave blank to use a generic message.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="copy-eta" className="block text-sm font-medium text-gray-700 mb-1">
+                ETA (minutes)
+              </label>
+              <input
+                id="copy-eta"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={ETA_MAX_MINUTES}
+                value={etaInput}
+                onChange={(e) => {
+                  setEtaInput(e.target.value)
+                  if (etaError) setEtaError(null)
+                }}
+                placeholder="6"
+                aria-invalid={etaError !== null}
+                className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none ${
+                  etaError
+                    ? 'border-red-400 focus:border-red-500'
+                    : 'border-gray-200 focus:border-gray-900'
+                }`}
+              />
+              {etaError ? (
+                <p className="text-xs text-red-600 mt-1">{etaError}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  If set, the confirmation adds &ldquo;Estimated arrival in
+                  N minutes.&rdquo; Leave blank to hide.
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="copy-billing-state" className="block text-sm font-medium text-gray-700 mb-1">
+                Billing state
+              </label>
+              <select
+                id="copy-billing-state"
+                value={billingState}
+                onChange={(e) => setBillingState(e.target.value as BillingState)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-gray-900 focus:outline-none bg-white"
+              >
+                {(Object.keys(BILLING_STATE_LABELS) as BillingState[]).map((s) => (
+                  <option key={s} value={s}>
+                    {BILLING_STATE_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Drives the closing line on the order confirmation receipt:
+              </p>
+              <ul className="text-xs text-gray-500 mt-1 ml-4 list-disc space-y-0.5">
+                <li>House account → &ldquo;CHARGED TO {`{customer ID}`}&rdquo;</li>
+                <li>Tab → &ldquo;TAB FOR {`{customer ID}`}&rdquo;</li>
+                <li>Complimentary → italic &ldquo;complimentary&rdquo; instead of a total</li>
+                <li>Paid → &ldquo;PAID&rdquo; (Stripe-charged venues)</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
