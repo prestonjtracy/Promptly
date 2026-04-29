@@ -91,3 +91,23 @@ category, so visually the order is per-category. Do we want:
 The Phase-2 custom-tabs work may also reshape this (items will increasingly
 key on `tab_id` instead of `category_id`), so it's worth landing the tab
 relationship before settling the constraint.
+
+### Editorial masthead — monogram fallback when `logo_url` is null
+The Claude Design mock for the Editorial chassis showed a stylized "SGC"
+monogram circle in the masthead. The current chassis at
+`app/order/[venueSlug]/_chassis/editorial/masthead.tsx` reads
+`venue.logo_url` and renders an `<img>` when set, otherwise renders nothing
+above the wordmark — there's no auto-generated monogram fallback.
+
+**Fix shape (when ready):** add a small `MonogramMark` primitive that
+derives initials from `venue.name` (e.g. "Sunset Golf Club" → "SGC", or
+the first letter of each word capped at 3) and renders them inside a
+hairline circle in the same 62×62 footprint the `<img>` occupies. Use
+`venue.primary_color` for the ring stroke so the mark stays brand-aware.
+Render conditional: `logo_url ? <img> : <MonogramMark>`.
+
+**Design decision needed before fixing:** how to derive initials for
+single-word names ("Fremont" → "F"? "FR"?), names with stop-words
+("The Harbor Pier" → "THP" or "HP"?), and venues with non-Latin
+characters. Worth deferring until there's a real second venue with no
+logo so the rule can be tested against real data.
