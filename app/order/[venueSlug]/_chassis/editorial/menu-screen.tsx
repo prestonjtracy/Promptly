@@ -54,6 +54,8 @@ export function EditorialMenuScreen({
         venue={venue}
         tagline={config.tagline}
         locationDisplay={config.locationDisplay}
+        locationCode={config.locationCode}
+        locationSubhead={config.locationSubhead}
       />
 
       <div style={{ paddingBottom: 120 }}>
@@ -61,11 +63,7 @@ export function EditorialMenuScreen({
           <section key={bucket.key} style={{ padding: i === 0 ? '28px 28px 0' : '36px 28px 0' }}>
             <SectionRule
               title={bucket.title}
-              subhead={
-                config.locationSubhead
-                  ? `${bucket.items.length} · ${config.locationSubhead}`
-                  : `${bucket.items.length} ITEM${bucket.items.length !== 1 ? 'S' : ''}`
-              }
+              subhead={`${bucket.items.length} ITEM${bucket.items.length !== 1 ? 'S' : ''}`}
             />
             <div>
               {bucket.items.map((it, idx) => {

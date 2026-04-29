@@ -49,9 +49,16 @@ export type OrderState = {
 export type ChassisConfig = {
   /** Masthead subtitle (e.g. "EST. 1962"). Null = hide entirely. */
   tagline: string | null
-  /** Pre-formatted location display (e.g. "HOLE 7"). Always non-empty. */
+  /** Pre-formatted location display (e.g. "HOLE 7"). Always non-empty. Used
+   *  in the cart/confirm folios where the full descriptive form stands alone. */
   locationDisplay: string
-  /** Masthead subhead under the section deck (e.g. "ON CART"). Null hides. */
+  /** Bare location identifier (e.g. "4" or "K-12") for the two-corner
+   *  masthead. Paired with locationSubhead to render strings like "ON CART 4"
+   *  without duplicating the noun. */
+  locationCode: string
+  /** Masthead right-corner phrase (e.g. "ON CART", "ON SLIP"). Null hides
+   *  the right corner; the chassis falls back to rendering locationDisplay
+   *  on its own. */
   locationSubhead: string | null
   /** Raw venue value for the cart-screen location-question label. Null lets
    *  the chassis fall back to its own default phrasing (Editorial:

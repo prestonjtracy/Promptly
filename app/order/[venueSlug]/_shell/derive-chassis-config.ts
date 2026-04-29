@@ -22,7 +22,7 @@ function deriveFulfillmentMode(venue: Venue): ChassisConfig['fulfillmentMode'] {
   return 'none' // misconfigured — chassis should render defensively
 }
 
-/** Format the location string for the masthead. Editorial wants uppercase;
+/** Format the location string for the chassis. Editorial wants uppercase;
  *  the actual casing transform is the chassis's job, but we hand it a
  *  canonical, non-empty string here so the chassis just renders. */
 function formatLocationDisplay(venue: Venue, location: Location): string {
@@ -34,6 +34,13 @@ function formatLocationDisplay(venue: Venue, location: Location): string {
   return location.name || location.code || venue.location_type_label
 }
 
+/** Bare identifier for the two-corner masthead. Pairs with location_subhead
+ *  to render "ON CART 4" without duplicating the noun. Falls back to the
+ *  same source as locationDisplay if no code is set. */
+function formatLocationCode(venue: Venue, location: Location): string {
+  return location.code || location.name || venue.location_type_label
+}
+
 export function deriveChassisConfig(
   venue: Venue,
   location: Location,
@@ -41,6 +48,7 @@ export function deriveChassisConfig(
   return {
     tagline: venue.tagline,
     locationDisplay: formatLocationDisplay(venue, location),
+    locationCode: formatLocationCode(venue, location),
     locationSubhead: venue.location_subhead,
     locationQuestionLabel: venue.location_question_label,
     fulfillmentMode: deriveFulfillmentMode(venue),
