@@ -57,6 +57,9 @@ export function EditorialConfirmScreen(props: ChassisProps) {
     <div
       style={{
         minHeight: '100dvh',
+        width: '100%',
+        maxWidth: 430,
+        margin: '0 auto',
         background: T.paper,
         display: 'flex',
         flexDirection: 'column',

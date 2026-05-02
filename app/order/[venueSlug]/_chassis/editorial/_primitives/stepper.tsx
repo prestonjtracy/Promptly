@@ -3,7 +3,7 @@
 import { EDITORIAL_TOKENS as T } from '../tokens'
 
 /** Quantity stepper. Two visual variants:
- *    - inline: hairline-circle minus / number / hairline-circle plus
+ *    - inline: bare minus / number / plus
  *      (used in the menu list next to each item once it has qty > 0)
  *    - boxed: thin-rule rectangle the same height as the CTA, designed to
  *      sit inline with the Add CTA on the item screen */
@@ -54,14 +54,22 @@ export function EditorialStepper({
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <button type="button" onClick={onDec} style={ringBtn(T.ink)} aria-label="Decrease">
-        —
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 10,
+        fontFamily: T.serifDisplay,
+        color: T.ink,
+      }}
+    >
+      <button type="button" onClick={onDec} style={bareBtn(T.ink)} aria-label="Decrease">
+        -
       </button>
       <span
         style={{
           fontFamily: T.serifDisplay,
-          fontSize: 18,
+          fontSize: 16,
           color: T.ink,
           fontVariantNumeric: 'oldstyle-nums',
           minWidth: 12,
@@ -70,28 +78,24 @@ export function EditorialStepper({
       >
         {qty}
       </span>
-      <button type="button" onClick={onInc} style={ringBtn(T.ink)} aria-label="Increase">
+      <button type="button" onClick={onInc} style={bareBtn(T.ink)} aria-label="Increase">
         +
       </button>
     </div>
   )
 }
 
-function ringBtn(ink: string): React.CSSProperties {
+function bareBtn(ink: string): React.CSSProperties {
   return {
-    width: 28,
-    height: 28,
-    border: `0.5px solid ${ink}`,
+    width: 14,
+    height: 20,
+    border: 'none',
     background: 'transparent',
-    borderRadius: '50%',
-    fontFamily: 'Newsreader, Georgia, serif',
-    fontSize: 14,
+    fontFamily: "var(--font-newsreader), 'Newsreader', Georgia, serif",
+    fontSize: 16,
     color: ink,
     cursor: 'pointer',
     padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     lineHeight: 1,
   }
 }

@@ -6,6 +6,7 @@ import { Folio } from './_primitives/folio'
 import { SectionRule } from './_primitives/section-rule'
 import { EditorialField } from './_primitives/field'
 import { EditorialCTA } from './_primitives/editorial-cta'
+import { formatDisplayName } from './format'
 
 /** Screen 03 — back-nav folio → "Review & send." display → cart line items
  *  with rolled-up modifier mentions → fulfillment toggle (only when 'both')
@@ -28,9 +29,11 @@ export function EditorialCartScreen(props: ChassisProps) {
     return {
       cartKey: entry.cartKey,
       qty: entry.quantity,
-      name: item?.name ?? 'Unknown item',
+      name: formatDisplayName(item?.name ?? 'Unknown item'),
       mods: entry.selectedModifiers.map((m) =>
-        m.modifier_type === 'remove' ? `No ${m.option_name}` : m.option_name,
+        m.modifier_type === 'remove'
+          ? `No ${formatDisplayName(m.option_name)}`
+          : formatDisplayName(m.option_name),
       ),
       lineTotal: unit * entry.quantity,
       hasPrice: item?.price !== null && item?.price !== undefined,
@@ -57,6 +60,9 @@ export function EditorialCartScreen(props: ChassisProps) {
     <div
       style={{
         minHeight: '100dvh',
+        width: '100%',
+        maxWidth: 430,
+        margin: '0 auto',
         background: T.paper,
         display: 'flex',
         flexDirection: 'column',

@@ -7,6 +7,7 @@ import { EDITORIAL_TOKENS as T } from './tokens'
 import { Folio } from './_primitives/folio'
 import { SectionRule } from './_primitives/section-rule'
 import { EditorialStepper } from './_primitives/stepper'
+import { formatDisplayName } from './format'
 
 /** Screen 02 — back-nav folio → display title → italic description →
  *  one section per modifier_group → "Special instruction" aside →
@@ -28,6 +29,9 @@ export function EditorialItemScreen({
       <div
         style={{
           minHeight: '100dvh',
+          width: '100%',
+          maxWidth: 430,
+          margin: '0 auto',
           background: T.paper,
           display: 'flex',
           alignItems: 'center',
@@ -97,7 +101,8 @@ function ItemScreenBody({
 
   // Stack the last word of the title on its own line in italic 300 — the
   // chassis's signature display treatment.
-  const titleParts = item.name.trim().split(/\s+/)
+  const displayName = formatDisplayName(item.name)
+  const titleParts = displayName.trim().split(/\s+/)
   const titleHead = titleParts.length > 1 ? titleParts.slice(0, -1).join(' ') : ''
   const titleTail = titleParts.slice(-1)[0]
 
@@ -123,6 +128,9 @@ function ItemScreenBody({
     <div
       style={{
         minHeight: '100dvh',
+        width: '100%',
+        maxWidth: 430,
+        margin: '0 auto',
         background: T.paper,
         display: 'flex',
         flexDirection: 'column',
@@ -146,7 +154,7 @@ function ItemScreenBody({
             marginBottom: 14,
           }}
         >
-          FROM {(item.category?.name ?? 'Menu').toUpperCase()} — N° 02
+            FROM {formatDisplayName(item.category?.name ?? 'Menu').toUpperCase()} — N° 02
         </div>
         <div
           style={{
@@ -241,7 +249,9 @@ function ItemScreenBody({
                           letterSpacing: -0.1,
                         }}
                       >
-                        {opt.modifier_type === 'remove' ? `No ${opt.name}` : opt.name}
+                          {opt.modifier_type === 'remove'
+                            ? `No ${formatDisplayName(opt.name)}`
+                            : formatDisplayName(opt.name)}
                       </div>
                     </div>
 
@@ -274,8 +284,8 @@ function ItemScreenBody({
           bottom: 0,
           left: 0,
           right: 0,
-          padding: '20px 28px max(38px, env(safe-area-inset-bottom))',
-          background: `linear-gradient(to top, ${T.paper} 70%, rgba(251,250,246,0))`,
+          padding: '14px 24px calc(18px + env(safe-area-inset-bottom))',
+          background: `linear-gradient(to top, ${T.paper} 76%, rgba(251,250,246,0))`,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>

@@ -27,8 +27,8 @@ export function EditorialCTA({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: '20px 28px max(38px, env(safe-area-inset-bottom))',
-        background: `linear-gradient(to top, ${T.paper} 70%, rgba(251,250,246,0))`,
+        padding: '14px 24px calc(18px + env(safe-area-inset-bottom))',
+        background: `linear-gradient(to top, ${T.paper} 76%, rgba(251,250,246,0))`,
       }}
     >
       <button
@@ -37,7 +37,9 @@ export function EditorialCTA({
         disabled={disabled}
         style={{
           width: '100%',
-          height: 56,
+          maxWidth: 382,
+          height: 54,
+          margin: '0 auto',
           border: 'none',
           background: accent,
           color: '#fff',
@@ -48,7 +50,7 @@ export function EditorialCTA({
           display: 'flex',
           justifyContent: rightMeta ? 'space-between' : 'center',
           alignItems: 'center',
-          padding: '0 22px',
+          padding: '0 20px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.55 : 1,
           borderRadius: 2,
