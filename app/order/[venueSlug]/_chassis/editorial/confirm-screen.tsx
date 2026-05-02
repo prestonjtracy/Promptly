@@ -43,7 +43,7 @@ export function EditorialConfirmScreen(props: ChassisProps) {
   })
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0)
   const itemCount = lines.reduce((s, l) => s + l.qty, 0)
-  const anyPriced = lines.some((l) => l.hasPrice)
+  const anyPriced = venue.show_prices && lines.some((l) => l.hasPrice)
 
   // Stack the headline's last word into italic 300 — chassis signature.
   const headlineParts = config.successHeadline.trim().split(/\s+/)
@@ -229,7 +229,7 @@ export function EditorialConfirmScreen(props: ChassisProps) {
                 &nbsp;&nbsp;
                 {line.label}
               </span>
-              {line.hasPrice && (
+              {venue.show_prices && line.hasPrice && (
                 <span style={{ fontVariantNumeric: 'oldstyle-nums', color: T.ink }}>
                   ${line.lineTotal.toFixed(2)}
                 </span>

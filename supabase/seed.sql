@@ -4,7 +4,21 @@
 -- Run this in the Supabase SQL Editor after applying the migration.
 
 -- Venue
-insert into public.venues (id, name, slug, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery)
+insert into public.venues (
+  id,
+  name,
+  slug,
+  primary_color,
+  accent_color,
+  location_type_label,
+  customer_id_label,
+  customer_id_required,
+  allow_pickup,
+  allow_delivery,
+  delivery_location_required,
+  show_prices,
+  chassis
+)
 values (
   'a1b2c3d4-0000-0000-0000-000000000001',
   'Sunset Golf Club',
@@ -15,7 +29,10 @@ values (
   'Member #',
   false,
   true,
-  true
+  true,
+  false,
+  false,
+  'editorial'
 );
 
 -- Locations (golf carts)
@@ -23,7 +40,13 @@ insert into public.locations (venue_id, code, name) values
   ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-1', 'Cart 1'),
   ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-2', 'Cart 2'),
   ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-3', 'Cart 3'),
-  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-4', 'Cart 4');
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-4', 'Cart 4'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-5', 'Cart 5'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-6', 'Cart 6'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-7', 'Cart 7'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-8', 'Cart 8'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-9', 'Cart 9'),
+  ('a1b2c3d4-0000-0000-0000-000000000001', 'sun-cart-10', 'Cart 10');
 
 -- Menu Categories
 insert into public.menu_categories (id, venue_id, name, sort_order) values

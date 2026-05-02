@@ -154,6 +154,7 @@ export function useOrderState(opts: {
     if (
       fulfillment === 'delivery' &&
       venue.allow_delivery &&
+      venue.delivery_location_required &&
       !deliveryLocation.trim()
     ) {
       setError('Please enter a delivery location.')

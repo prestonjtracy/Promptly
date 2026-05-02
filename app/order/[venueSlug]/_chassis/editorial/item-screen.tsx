@@ -93,6 +93,7 @@ function ItemScreenBody({
   }, 0)
   const unitPrice = (item.price ?? 0) + modifierTotal
   const lineTotal = unitPrice * qty
+  const showPrices = venue.show_prices
 
   // Stack the last word of the title on its own line in italic 300 — the
   // chassis's signature display treatment.
@@ -191,7 +192,7 @@ function ItemScreenBody({
               {group.options.map((opt, idx) => {
                 const sel = selected.has(opt.id)
                 const showsPrice =
-                  opt.modifier_type !== 'remove' && opt.price_adjustment > 0
+                  showPrices && opt.modifier_type !== 'remove' && opt.price_adjustment > 0
                 return (
                   <div
                     key={opt.id}
@@ -244,18 +245,20 @@ function ItemScreenBody({
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        fontFamily: T.serif,
-                        fontSize: 13,
-                        color: showsPrice ? T.ink : T.mutedSoft,
-                        fontVariantNumeric: 'oldstyle-nums',
-                        fontStyle: showsPrice ? 'normal' : 'italic',
-                        fontWeight: 300,
-                      }}
-                    >
-                      {showsPrice ? `+ $${opt.price_adjustment.toFixed(2)}` : 'included'}
-                    </div>
+                    {showPrices && (
+                      <div
+                        style={{
+                          fontFamily: T.serif,
+                          fontSize: 13,
+                          color: showsPrice ? T.ink : T.mutedSoft,
+                          fontVariantNumeric: 'oldstyle-nums',
+                          fontStyle: showsPrice ? 'normal' : 'italic',
+                          fontWeight: 300,
+                        }}
+                      >
+                        {showsPrice ? `+ $${opt.price_adjustment.toFixed(2)}` : 'included'}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -297,24 +300,26 @@ function ItemScreenBody({
               letterSpacing: 0.2,
               padding: '0 18px',
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: showPrices ? 'space-between' : 'center',
               alignItems: 'center',
               cursor: 'pointer',
               borderRadius: 2,
             }}
           >
             <span style={{ fontStyle: 'italic' }}>Add to order</span>
-            <span
-              style={{
-                fontFamily: T.sans,
-                fontSize: 10,
-                letterSpacing: 2.4,
-                fontWeight: 600,
-                opacity: 0.9,
-              }}
-            >
-              ${lineTotal.toFixed(2)}
-            </span>
+            {showPrices && (
+              <span
+                style={{
+                  fontFamily: T.sans,
+                  fontSize: 10,
+                  letterSpacing: 2.4,
+                  fontWeight: 600,
+                  opacity: 0.9,
+                }}
+              >
+                ${lineTotal.toFixed(2)}
+              </span>
+            )}
           </button>
         </div>
       </div>

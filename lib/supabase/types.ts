@@ -1,4 +1,5 @@
 export type PlanType = 'pos_only' | 'full_commerce'
+export type VenueChassis = 'editorial'
 
 /** Receipt billing state for the customer-facing order chassis. Drives which
  *  closing line the confirmation screen shows. Independent of payments_enabled
@@ -27,8 +28,15 @@ export type Venue = {
   plan_type: PlanType
   payments_enabled: boolean
   tier: string
+  /** Customer-facing price visibility. Staff/internal flows can still use
+   *  menu prices even when this is false. */
+  show_prices: boolean
+  /** Whether delivery orders must include a typed delivery/location note. */
+  delivery_location_required: boolean
+  /** Future chassis selector. Only 'editorial' exists today. */
+  chassis: VenueChassis
 
-  // ── Editorial-chassis copy (and any future chassis). ─────────
+  // ── Order-page copy (shared by the current and future chassis). ─
   // All chassis-agnostic copy — what to say, not how to style it.
   /** Masthead subtitle, e.g. "EST. 1962" or "SLIP & SAIL". Null hides. */
   tagline: string | null
@@ -62,7 +70,7 @@ export type Venue = {
  *  and passcode/passcode_hash — those are REVOKEd at the DB level and read only
  *  through the service-role client inside trusted server actions. */
 export const VENUE_PUBLIC_COLUMNS =
-  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, tier, tagline, location_subhead, location_question_label, submit_cta_label, success_headline, fulfillment_copy, default_fulfillment_eta_minutes, billing_state, created_at, updated_at'
+  'id, name, slug, logo_url, primary_color, accent_color, location_type_label, customer_id_label, customer_id_required, allow_pickup, allow_delivery, allow_notes, delivery_location_placeholder, default_slack_channel, features, plan_type, payments_enabled, tier, show_prices, delivery_location_required, chassis, tagline, location_subhead, location_question_label, submit_cta_label, success_headline, fulfillment_copy, default_fulfillment_eta_minutes, billing_state, created_at, updated_at'
 
 /** Feature flags for workspace-level gating. New features default to false. */
 export type VenueFeatures = {

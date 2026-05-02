@@ -200,6 +200,7 @@ export async function updateWorkspaceSettings(
   settings: {
     allow_pickup: boolean
     allow_delivery: boolean
+    delivery_location_required?: boolean
     customer_id_label: string | null
     customer_id_required: boolean
     allow_notes: boolean
@@ -208,6 +209,7 @@ export async function updateWorkspaceSettings(
     primary_color: string
     accent_color: string
     logo_url: string | null
+    show_prices?: boolean
     payments_enabled?: boolean
     stripe_secret_key?: string
     // ── Order Page Copy (Editorial chassis fields). All optional in the
@@ -256,6 +258,10 @@ export async function updateWorkspaceSettings(
   const updatePayload: Record<string, unknown> = {
     allow_pickup: settings.allow_pickup,
     allow_delivery: settings.allow_delivery,
+    delivery_location_required:
+      typeof settings.delivery_location_required === 'boolean'
+        ? settings.delivery_location_required
+        : true,
     customer_id_label: settings.customer_id_label || null,
     customer_id_required: settings.customer_id_label ? settings.customer_id_required : false,
     allow_notes: settings.allow_notes,
@@ -264,6 +270,8 @@ export async function updateWorkspaceSettings(
     primary_color: settings.primary_color,
     accent_color: settings.accent_color,
     logo_url: settings.logo_url,
+    show_prices:
+      typeof settings.show_prices === 'boolean' ? settings.show_prices : true,
   }
 
   if (typeof settings.payments_enabled === 'boolean') {

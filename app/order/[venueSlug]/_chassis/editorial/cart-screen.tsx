@@ -38,7 +38,7 @@ export function EditorialCartScreen(props: ChassisProps) {
   })
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0)
   const itemCount = lines.reduce((s, l) => s + l.qty, 0)
-  const anyPriced = lines.some((l) => l.hasPrice)
+  const anyPriced = venue.show_prices && lines.some((l) => l.hasPrice)
 
   const customerLabel = venue.customer_id_label
   const showFulfillmentToggle = config.fulfillmentMode === 'both'
@@ -146,7 +146,7 @@ export function EditorialCartScreen(props: ChassisProps) {
                   >
                     {line.name}
                   </div>
-                  {line.hasPrice && (
+                  {venue.show_prices && line.hasPrice && (
                     <div
                       style={{
                         fontFamily: T.serif,
@@ -308,6 +308,7 @@ export function EditorialCartScreen(props: ChassisProps) {
               value={state.deliveryLocation}
               onChange={actions.onChangeDeliveryLocation}
               placeholder={venue.delivery_location_placeholder ?? ''}
+              optional={!venue.delivery_location_required}
             />
           )}
           {venue.allow_notes && (

@@ -49,7 +49,7 @@ async function sendSlackNotification(
       supabase.from('locations').select('name').eq('id', data.location_id).single(),
       supabase
         .from('menu_items')
-        .select('id, name, slack_channel')
+        .select('id, name, price, slack_channel')
         .in('id', data.items.map((i) => i.menu_item_id)),
     ])
 
@@ -60,9 +60,14 @@ async function sendSlackNotification(
     const locationName = locationRes.data?.name ?? 'Unknown'
 
     const menuItemMap = new Map(
-      (menuItemsRes.data ?? []).map((mi: { id: string; name: string; slack_channel: string | null }) => [
+      (menuItemsRes.data ?? []).map((mi: {
+        id: string
+        name: string
+        price: number | null
+        slack_channel: string | null
+      }) => [
         mi.id,
-        { name: mi.name, slack_channel: mi.slack_channel },
+        { name: mi.name, price: mi.price, slack_channel: mi.slack_channel },
       ])
     )
 
@@ -96,8 +101,16 @@ async function sendSlackNotification(
       const itemLines = items.map((item) => {
         const meta = menuItemMap.get(item.menu_item_id)
         const name = meta?.name ?? 'Unknown item'
-        let line = `• ${name} x${item.quantity}`
         const mods = item.selected_modifiers ?? []
+        const modifierTotal = mods
+          .filter((m) => m.modifier_type !== 'remove')
+          .reduce((sum, m) => sum + m.price_adjustment, 0)
+        const unitTotal =
+          meta?.price == null ? null : meta.price + modifierTotal
+        const lineTotal =
+          unitTotal == null ? null : unitTotal * item.quantity
+        const priceSuffix = lineTotal == null ? '' : ` — $${lineTotal.toFixed(2)}`
+        let line = `• ${name} x${item.quantity}${priceSuffix}`
         if (mods.length > 0) {
           const modStrings = mods.map((m) => {
             const prefix = m.modifier_type === 'remove' ? '−' : '+'

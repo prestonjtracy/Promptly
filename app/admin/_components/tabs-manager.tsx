@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -21,6 +21,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import type { VenueTab, InfoTabConfig } from '@/lib/supabase/types'
 import { createTab, updateTab, deleteTab, reorderTabs } from '@/app/actions/admin'
+
+const subscribeMounted = () => () => {}
+const getMountedSnapshot = () => true
+const getServerMountedSnapshot = () => false
 
 type TabsManagerProps = {
   venueId: string
@@ -182,8 +186,11 @@ export function TabsManager({ venueId, tabs }: TabsManagerProps) {
   const [newType, setNewType] = useState<'requests' | 'info'>('requests')
 
   // DnD sensors need to mount client-side to avoid hydration mismatch.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useSyncExternalStore(
+    subscribeMounted,
+    getMountedSnapshot,
+    getServerMountedSnapshot,
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

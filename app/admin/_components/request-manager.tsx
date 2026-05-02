@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useSyncExternalStore, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -29,6 +29,10 @@ import {
   addCategory,
 } from '@/app/actions/admin'
 import { uploadRequestImage } from '@/app/actions/upload'
+
+const subscribeMounted = () => () => {}
+const getMountedSnapshot = () => true
+const getServerMountedSnapshot = () => false
 
 // ── Sortable item wrapper ────────────────────────────────────
 
@@ -394,8 +398,11 @@ function SortableSection({
   onDelete: (id: string) => void
   formatPrice: (price: number | null) => string | null
 }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useSyncExternalStore(
+    subscribeMounted,
+    getMountedSnapshot,
+    getServerMountedSnapshot,
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

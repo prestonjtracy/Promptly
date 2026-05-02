@@ -108,7 +108,7 @@ export function EditorialMenuScreen({
                         >
                           {it.name}
                         </div>
-                        {it.price !== null && (
+                        {venue.show_prices && it.price !== null && (
                           <div
                             style={{
                               fontFamily: T.serif,

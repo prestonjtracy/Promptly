@@ -70,6 +70,9 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
 
   const [allowPickup, setAllowPickup] = useState(venue.allow_pickup)
   const [allowDelivery, setAllowDelivery] = useState(venue.allow_delivery)
+  const [deliveryLocationRequired, setDeliveryLocationRequired] = useState(
+    venue.delivery_location_required,
+  )
   const [deliveryPlaceholder, setDeliveryPlaceholder] = useState(
     venue.delivery_location_placeholder ?? ''
   )
@@ -90,6 +93,7 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
   const [primaryColor, setPrimaryColor] = useState(venue.primary_color || '#1a1a1a')
   const [accentColor, setAccentColor] = useState(venue.accent_color || '#2563eb')
   const [logoUrl, setLogoUrl] = useState(venue.logo_url ?? '')
+  const [showPrices, setShowPrices] = useState(venue.show_prices)
 
   // Payments (only meaningful when canUsePayments(venue) is true — otherwise
   // state is initialized but the section never renders and the values never
@@ -168,6 +172,7 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
       const result = await updateWorkspaceSettings(venue.id, {
         allow_pickup: allowPickup,
         allow_delivery: allowDelivery,
+        delivery_location_required: allowDelivery ? deliveryLocationRequired : false,
         customer_id_label: customerIdLabel.trim() || null,
         customer_id_required: customerIdLabel.trim()
           ? customerIdRequired
@@ -178,6 +183,7 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
         primary_color: primaryColor,
         accent_color: accentColor,
         logo_url: logoUrl.trim() || null,
+        show_prices: showPrices,
         ...(paymentsVisible
           ? {
               payments_enabled: paymentsEnabled,
@@ -230,7 +236,13 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
             onChange={setAllowDelivery}
           />
           {allowDelivery && (
-            <div className="ml-13 pl-[52px]">
+            <div className="ml-13 pl-[52px] space-y-3">
+              <Toggle
+                label="Require delivery location"
+                description="Customers must type where staff should meet them"
+                checked={deliveryLocationRequired}
+                onChange={setDeliveryLocationRequired}
+              />
               <label
                 htmlFor="delivery-placeholder"
                 className="block text-xs font-medium text-gray-600 mb-1"
@@ -298,6 +310,17 @@ export function WorkspaceSettings({ venue, tabs }: WorkspaceSettingsProps) {
           description="Let customers add special requests or notes"
           checked={allowNotes}
           onChange={setAllowNotes}
+        />
+      </div>
+
+      {/* Customer Pricing */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+        <h2 className="font-semibold text-gray-900">Customer Pricing</h2>
+        <Toggle
+          label="Show prices to customers"
+          description="Hide for POS-bridge venues that charge in their own system"
+          checked={showPrices}
+          onChange={setShowPrices}
         />
       </div>
 
